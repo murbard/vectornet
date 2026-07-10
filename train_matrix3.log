@@ -1,0 +1,40 @@
+matrix optimizer: 12525 meta-params
+cifar10 unavailable (Compressed file ended before the end-of-stream marker was reached); training without it
+pes     0  seg-loss 0.0453  ema 0.0453
+  eval[h16] learned: loss 3894.4731 acc 0.092  vs  muon(lr=0.1): loss 0.0018 acc 0.999
+  eval[h64-wider] learned: loss 112736.6562 acc 0.088  vs  muon(lr=0.1): loss 0.0000 acc 1.000
+  eval[h16-long] learned: loss 35861.1562 acc 0.088  vs  muon(lr=0.03): loss 0.0000 acc 1.000
+  eval[fashion-h16 HELD-OUT] learned: loss 64356.4258 acc 0.104  vs  muon(lr=0.03): loss 0.0000 acc 1.000
+  eval[fashion-h64 HELD-OUT] learned: loss 901938.3125 acc 0.085  vs  muon(lr=0.03): loss 0.0000 acc 1.000
+pes    25  seg-loss 6.6652  ema 2.0968
+pes    50  seg-loss 1.6379  ema 2.1783
+pes    75  seg-loss -0.5228  ema 1.2792
+  probe-score 2.0147 (new best, saved)
+pes   100  seg-loss -0.7276  ema 0.4876
+pes   125  seg-loss 0.7006  ema 0.1471
+pes   150  seg-loss -0.1339  ema 0.1370
+pes   175  seg-loss 0.2807  ema 0.1978
+  probe-score -0.2781 (new best, saved)
+pes   200  seg-loss -2.1763  ema -0.2171
+pes   225  seg-loss -0.9185  ema -0.5499
+pes   250  seg-loss -0.3874  ema -0.4689
+pes   275  seg-loss -0.7171  ema -0.4751
+pes   300  seg-loss -1.1452  ema -0.7805
+pes   325  seg-loss -1.0712  ema -0.8433
+pes   350  seg-loss -1.4371  ema -1.3612
+pes   375  seg-loss -0.4076  ema -1.2411
+pes   400  seg-loss -0.2146  ema -0.9331
+pes   425  seg-loss -0.4004  ema -0.6682
+pes   450  seg-loss -3.7785  ema -0.8376
+pes   475  seg-loss -0.1482  ema -1.0048
+pes   500  seg-loss -1.4664  ema -0.8346
+pes   525  seg-loss -0.5234  ema -0.8398
+pes   550  seg-loss -1.7461  ema -0.8701
+pes   575  seg-loss -1.5542  ema -1.0908
+  probe-score -0.5146 (new best, saved)
+pes   600  seg-loss -0.9040  ema -0.7600
+pes   625  seg-loss -17.0554  ema -2.1106
+pes   650  seg-loss -1.7349  ema -5.1626
+pes   675  seg-loss -0.6897  ema -3.6802
+pes   700  seg-loss -3.6507  ema -3.0801
+pes   725  seg-loss -2.3621  ema -2.7518

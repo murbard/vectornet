@@ -1,0 +1,143 @@
+learned optimizer has 19345 meta-parameters (independent of problem dim)
+meta     0  meta-loss 0.0791  ema 0.0791  final/init 1.2032  gnorm 8.07
+  eval[same-dim] learned: loss 2.481 acc 0.066  sgd(lr=0.3): loss 0.477 acc 0.913  adam(lr=0.03): loss 0.023 acc 1.000
+  eval[same-dim-long] learned: loss 3.876 acc 0.073  sgd(lr=0.3): loss 0.028 acc 1.000  adam(lr=0.03): loss 0.000 acc 1.000
+  eval[4x-wider] learned: loss 2.486 acc 0.068  sgd(lr=0.3): loss 0.315 acc 0.973  adam(lr=0.01): loss 0.002 acc 1.000
+meta    25  meta-loss -1.1238  ema -0.2041  final/init 0.1172  gnorm 44.05
+meta    50  meta-loss -0.5118  ema -0.6448  final/init 0.3908  gnorm 13225.92
+meta    75  meta-loss -2.4139  ema -0.8177  final/init 0.0027  gnorm 185.65
+meta   100  meta-loss 1.8022  ema -1.2636  final/init 356.2208  gnorm 90.21
+meta   125  meta-loss -1.9518  ema -1.4549  final/init 0.0173  gnorm 36.03
+meta   150  meta-loss 0.4280  ema -1.3206  final/init 33.7317  gnorm 4127.93
+meta   175  meta-loss -1.9810  ema -1.6790  final/init 0.0150  gnorm 398.00
+meta   200  meta-loss -1.8047  ema -1.5615  final/init 0.0362  gnorm 528.49
+meta   225  meta-loss -1.8331  ema -1.3966  final/init 0.0457  gnorm 388.05
+meta   250  meta-loss -0.1265  ema -1.4533  final/init 2.8124  gnorm 35.11
+meta   275  meta-loss -2.3133  ema -1.6792  final/init 0.0049  gnorm 409.75
+meta   300  meta-loss -2.3236  ema -1.8598  final/init 0.0045  gnorm 129.38
+meta   325  meta-loss -1.2622  ema -2.0798  final/init 0.1872  gnorm 71.49
+meta   350  meta-loss -3.3092  ema -2.3525  final/init 0.0268  gnorm 7394.42
+meta   375  meta-loss -2.1212  ema -2.2653  final/init 0.0247  gnorm 11442.17
+meta   400  meta-loss -0.2229  ema -1.7830  final/init 7.5258  gnorm 3313.21
+meta   425  meta-loss -2.8993  ema -2.0089  final/init 0.0022  gnorm 2031.31
+meta   450  meta-loss -1.5815  ema -1.9200  final/init 0.0598  gnorm 1681.55
+meta   475  meta-loss -1.4007  ema -1.7334  final/init 0.0795  gnorm 20.88
+meta   500  meta-loss -2.8241  ema -1.8858  final/init 0.0495  gnorm 13116.31
+  eval[same-dim] learned: loss 0.084 acc 0.986  sgd(lr=0.3): loss 0.477 acc 0.913  adam(lr=0.03): loss 0.023 acc 1.000
+  eval[same-dim-long] learned: loss 0.000 acc 1.000  sgd(lr=0.3): loss 0.028 acc 1.000  adam(lr=0.03): loss 0.000 acc 1.000
+  eval[4x-wider] learned: loss 0.020 acc 0.999  sgd(lr=0.3): loss 0.315 acc 0.973  adam(lr=0.01): loss 0.002 acc 1.000
+meta   525  meta-loss -1.7011  ema -1.5286  final/init 0.3642  gnorm 6596.29
+meta   550  meta-loss -1.5849  ema -1.8490  final/init 0.0722  gnorm 2233.38
+meta   575  meta-loss 0.0013  ema -1.3837  final/init 1.0138  gnorm 119245.39
+meta   600  meta-loss 3.5682  ema 0.1975  final/init 452.5878  gnorm 11263.70
+meta   625  meta-loss 0.1675  ema 0.6790  final/init 3.6347  gnorm 5435.70
+meta   650  meta-loss -0.8490  ema 0.1454  final/init 0.1404  gnorm 811.62
+meta   675  meta-loss -1.5863  ema -0.3697  final/init 0.0610  gnorm 96320.62
+meta   700  meta-loss -0.6579  ema -0.6392  final/init 0.2445  gnorm 358.51
+meta   725  meta-loss 0.1724  ema -0.3373  final/init 0.8063  gnorm 38.81
+meta   750  meta-loss 0.7033  ema 0.0142  final/init 2.0980  gnorm 9127.37
+meta   775  meta-loss 0.4861  ema 0.2225  final/init 2.1146  gnorm 408.92
+meta   800  meta-loss 0.2988  ema 0.2715  final/init 1.8054  gnorm 16.03
+meta   825  meta-loss -0.0686  ema 0.2139  final/init 0.8379  gnorm 8.85
+meta   850  meta-loss -1.3171  ema -0.1340  final/init 0.0817  gnorm 33.90
+meta   875  meta-loss -1.1493  ema -0.5980  final/init 0.0941  gnorm 834.41
+meta   900  meta-loss -2.2212  ema -1.0448  final/init 0.0165  gnorm 1330.36
+meta   925  meta-loss -1.4919  ema -1.1904  final/init 0.0859  gnorm 3605.93
+meta   950  meta-loss -2.1866  ema -1.3883  final/init 0.0066  gnorm 48.61
+meta   975  meta-loss -2.0715  ema -1.6569  final/init 0.0193  gnorm 146.53
+meta  1000  meta-loss -2.7865  ema -2.0385  final/init 0.0018  gnorm 299.72
+  eval[same-dim] learned: loss 0.001 acc 1.000  sgd(lr=0.3): loss 0.477 acc 0.913  adam(lr=0.03): loss 0.023 acc 1.000
+  eval[same-dim-long] learned: loss 0.175 acc 0.979  sgd(lr=0.3): loss 0.028 acc 1.000  adam(lr=0.03): loss 0.000 acc 1.000
+  eval[4x-wider] learned: loss 0.000 acc 1.000  sgd(lr=0.3): loss 0.315 acc 0.973  adam(lr=0.01): loss 0.002 acc 1.000
+meta  1025  meta-loss -2.9426  ema -2.3219  final/init 0.0008  gnorm 554.70
+meta  1050  meta-loss -1.9276  ema -2.3312  final/init 0.0114  gnorm 1778.81
+meta  1075  meta-loss -2.2297  ema -2.2804  final/init 0.0346  gnorm 1329.67
+meta  1100  meta-loss -1.4617  ema -1.6908  final/init 0.3803  gnorm 84532.62
+meta  1125  meta-loss -1.7998  ema -1.8260  final/init 0.0537  gnorm 70806.03
+meta  1150  meta-loss -0.7832  ema -1.4913  final/init 0.2792  gnorm 77.47
+meta  1175  meta-loss -0.6345  ema -1.1261  final/init 0.4140  gnorm 190.15
+meta  1200  meta-loss -1.2560  ema -1.0343  final/init 0.0817  gnorm 73.83
+meta  1225  meta-loss -1.3862  ema -1.1991  final/init 0.0759  gnorm 169.15
+meta  1250  meta-loss -1.4515  ema -1.3212  final/init 0.0718  gnorm 285.15
+meta  1275  meta-loss -1.4075  ema -1.3814  final/init 0.0456  gnorm 724.44
+meta  1300  meta-loss -1.7609  ema -1.4704  final/init 0.0655  gnorm 7955.65
+meta  1325  meta-loss -1.4404  ema -1.4459  final/init 0.1305  gnorm 15757.77
+meta  1350  meta-loss -0.3222  ema -1.2984  final/init 0.3158  gnorm 275.83
+meta  1375  meta-loss -1.3462  ema -1.1503  final/init 0.0770  gnorm 265.88
+meta  1400  meta-loss -1.9074  ema -1.3714  final/init 0.0258  gnorm 48.12
+meta  1425  meta-loss -2.7756  ema -1.8130  final/init 0.0021  gnorm 617.10
+meta  1450  meta-loss -3.0409  ema -2.2832  final/init 0.0024  gnorm 10637.65
+meta  1475  meta-loss -3.0149  ema -2.3292  final/init 0.0017  gnorm 1410.20
+meta  1500  meta-loss -2.4112  ema -2.5139  final/init 0.1003  gnorm 4280.20
+  eval[same-dim] learned: loss 0.078 acc 0.992  sgd(lr=0.3): loss 0.477 acc 0.913  adam(lr=0.03): loss 0.023 acc 1.000
+  eval[same-dim-long] learned: loss 0.000 acc 1.000  sgd(lr=0.3): loss 0.028 acc 1.000  adam(lr=0.03): loss 0.000 acc 1.000
+  eval[4x-wider] learned: loss 0.000 acc 1.000  sgd(lr=0.3): loss 0.315 acc 0.973  adam(lr=0.01): loss 0.002 acc 1.000
+meta  1525  meta-loss -2.8100  ema -2.5745  final/init 0.0463  gnorm 171366.98
+meta  1550  meta-loss -1.8829  ema -2.4789  final/init 0.0319  gnorm 2133.96
+meta  1575  meta-loss -1.3925  ema -2.2655  final/init 0.0523  gnorm 941.40
+meta  1600  meta-loss -0.4686  ema -1.7774  final/init 0.4124  gnorm 4.08
+meta  1625  meta-loss -2.2860  ema -1.6874  final/init 0.0058  gnorm 118.60
+meta  1650  meta-loss -3.0885  ema -2.1620  final/init 0.0019  gnorm 11221.66
+meta  1675  meta-loss -2.8043  ema -2.5577  final/init 0.0015  gnorm 167.02
+meta  1700  meta-loss -3.0145  ema -2.7159  final/init 0.0005  gnorm 590.46
+meta  1725  meta-loss -3.5021  ema -2.9164  final/init 0.0066  gnorm 744.30
+meta  1750  meta-loss -2.4950  ema -2.6678  final/init 0.0030  gnorm 76.44
+meta  1775  meta-loss -2.1582  ema -2.6573  final/init 0.0425  gnorm 1017.93
+meta  1800  meta-loss -2.9879  ema -2.4993  final/init 0.0016  gnorm 1322.89
+meta  1825  meta-loss -2.7802  ema -2.7450  final/init 0.0037  gnorm 1395.76
+meta  1850  meta-loss -3.5072  ema -2.8838  final/init 0.0021  gnorm 5131.51
+meta  1875  meta-loss -3.4777  ema -3.0712  final/init 0.0010  gnorm 312.19
+meta  1900  meta-loss -2.3954  ema -2.9180  final/init 0.0194  gnorm 2815.22
+meta  1925  meta-loss -2.9027  ema -2.7737  final/init 0.0093  gnorm 10921.84
+meta  1950  meta-loss -2.3384  ema -2.7126  final/init 0.0421  gnorm 1141.09
+meta  1975  meta-loss -1.9223  ema -2.2577  final/init 0.0632  gnorm 3001.78
+meta  2000  meta-loss -1.1796  ema -1.7958  final/init 1.2493  gnorm 1142.88
+  eval[same-dim] learned: loss 1.033 acc 0.962  sgd(lr=0.3): loss 0.477 acc 0.913  adam(lr=0.03): loss 0.023 acc 1.000
+  eval[same-dim-long] learned: loss 98.214 acc 0.961  sgd(lr=0.3): loss 0.028 acc 1.000  adam(lr=0.03): loss 0.000 acc 1.000
+  eval[4x-wider] learned: loss 0.007 acc 0.999  sgd(lr=0.3): loss 0.315 acc 0.973  adam(lr=0.01): loss 0.002 acc 1.000
+meta  2025  meta-loss -1.6960  ema -1.5614  final/init 0.1651  gnorm 1153.05
+meta  2050  meta-loss -1.8009  ema -1.5649  final/init 0.0672  gnorm 1100.39
+meta  2075  meta-loss -2.3048  ema -1.7511  final/init 0.1662  gnorm 3084.32
+meta  2100  meta-loss -3.1908  ema -2.2311  final/init 0.0194  gnorm 3522.30
+meta  2125  meta-loss -3.4522  ema -2.6293  final/init 0.0067  gnorm 10899.44
+meta  2150  meta-loss -3.3723  ema -2.8338  final/init 0.0015  gnorm 925.13
+meta  2175  meta-loss -3.4301  ema -3.0269  final/init 0.0025  gnorm 394.18
+meta  2200  meta-loss -3.3883  ema -3.1509  final/init 0.0017  gnorm 1167.52
+meta  2225  meta-loss -3.4670  ema -3.2199  final/init 0.0237  gnorm 308.93
+meta  2250  meta-loss -2.8453  ema -3.2558  final/init 0.0102  gnorm 1594.44
+meta  2275  meta-loss -3.2914  ema -3.3387  final/init 0.0126  gnorm 433.39
+meta  2300  meta-loss -3.0964  ema -3.4116  final/init 0.0053  gnorm 772.45
+meta  2325  meta-loss -2.9587  ema -3.4300  final/init 0.0066  gnorm 1920.72
+meta  2350  meta-loss -3.3710  ema -3.4900  final/init 0.0011  gnorm 1117.60
+meta  2375  meta-loss -3.2071  ema -3.4760  final/init 0.0066  gnorm 1697.59
+meta  2400  meta-loss -3.3676  ema -3.4863  final/init 0.0063  gnorm 5816.82
+meta  2425  meta-loss -3.2964  ema -3.4873  final/init 0.0209  gnorm 9057.67
+meta  2450  meta-loss -2.9169  ema -3.4212  final/init 0.0338  gnorm 1214.42
+meta  2475  meta-loss -2.8810  ema -3.2536  final/init 0.0336  gnorm 4437.02
+meta  2500  meta-loss -3.1162  ema -3.1288  final/init 0.0373  gnorm 407.20
+  eval[same-dim] learned: loss 0.028 acc 0.994  sgd(lr=0.3): loss 0.477 acc 0.913  adam(lr=0.03): loss 0.023 acc 1.000
+  eval[same-dim-long] learned: loss 0.000 acc 1.000  sgd(lr=0.3): loss 0.028 acc 1.000  adam(lr=0.03): loss 0.000 acc 1.000
+  eval[4x-wider] learned: loss 0.000 acc 1.000  sgd(lr=0.3): loss 0.315 acc 0.973  adam(lr=0.01): loss 0.002 acc 1.000
+meta  2525  meta-loss -2.9219  ema -3.0117  final/init 0.0351  gnorm 6129.40
+meta  2550  meta-loss -1.6598  ema -2.6082  final/init 0.2596  gnorm 1148.17
+meta  2575  meta-loss -1.0928  ema -2.2749  final/init 1.0234  gnorm 249.64
+meta  2600  meta-loss -1.5547  ema -2.1040  final/init 0.6621  gnorm 1923.59
+meta  2625  meta-loss -1.3787  ema -1.9198  final/init 0.7065  gnorm 8307.05
+meta  2650  meta-loss -1.6746  ema -1.6678  final/init 1.1626  gnorm 2784.40
+meta  2675  meta-loss -1.1423  ema -1.4860  final/init 1.0521  gnorm 587.04
+meta  2700  meta-loss -2.0452  ema -1.5654  final/init 0.1750  gnorm 1648.25
+meta  2725  meta-loss -2.3930  ema -1.7368  final/init 0.2809  gnorm 4242.12
+meta  2750  meta-loss -1.8948  ema -1.7987  final/init 0.3451  gnorm 10962.90
+meta  2775  meta-loss -1.8399  ema -1.9365  final/init 0.3614  gnorm 10331.24
+meta  2800  meta-loss -2.4133  ema -1.9340  final/init 0.1114  gnorm 1057.71
+meta  2825  meta-loss -2.0444  ema -2.0184  final/init 0.0992  gnorm 48652.32
+meta  2850  meta-loss -2.1091  ema -2.0346  final/init 0.2218  gnorm 6909.13
+meta  2875  meta-loss -1.9863  ema -2.0722  final/init 0.4276  gnorm 4965.86
+meta  2900  meta-loss -2.2724  ema -2.0867  final/init 0.2538  gnorm 4963.76
+meta  2925  meta-loss -2.0613  ema -2.0712  final/init 0.1599  gnorm 6376.07
+meta  2950  meta-loss -2.1920  ema -2.0873  final/init 0.1045  gnorm 375.64
+meta  2975  meta-loss -2.1923  ema -2.1009  final/init 0.1314  gnorm 723.63
+  eval[same-dim] learned: loss 0.189 acc 0.984  sgd(lr=0.3): loss 0.477 acc 0.913  adam(lr=0.03): loss 0.023 acc 1.000
+  eval[same-dim-long] learned: loss 113.189 acc 0.979  sgd(lr=0.3): loss 0.028 acc 1.000  adam(lr=0.03): loss 0.000 acc 1.000
+  eval[4x-wider] learned: loss 0.003 acc 0.999  sgd(lr=0.3): loss 0.315 acc 0.973  adam(lr=0.01): loss 0.002 acc 1.000
+done
