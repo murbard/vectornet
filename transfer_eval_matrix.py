@@ -74,20 +74,22 @@ def main():
                  ("prodigy", [1.0])]
 
     tasks = [
-        ("mnist h16 (train domain)", mnist, 16),
-        ("mnist h64 (unseen width)", mnist, 64),
-        ("mnist (32,32) (unseen shape)", mnist, (32, 32)),
-        ("fashion h16 (HELD-OUT dataset)", fashion, 16),
-        ("fashion h64 (held-out data+width)", fashion, 64),
-        ("covertype h16 (train domain)", cov, 16),
-        ("pendigits h16 (HELD-OUT dataset)", pen, 16),
-        ("pendigits h64 (held-out data+width)", pen, 64),
+        ("mnist h16 (train domain)", mnist, 16, 128),
+        ("mnist h64 (unseen width)", mnist, 64, 128),
+        ("mnist (32,32) (unseen shape)", mnist, (32, 32), 128),
+        ("fashion h16 (HELD-OUT dataset)", fashion, 16, 128),
+        ("fashion h64 (held-out data+width)", fashion, 64, 128),
+        ("fashion h16 B=16 (noise transfer)", fashion, 16, 16),
+        ("fashion h16 B=512 (unseen batch size)", fashion, 16, 512),
+        ("covertype h16 (train domain)", cov, 16, 128),
+        ("pendigits h16 (HELD-OUT dataset)", pen, 16, 128),
+        ("pendigits h64 (held-out data+width)", pen, 64, 128),
     ]
     for n_steps in [20, 100]:
         print(f"\n=== budget: {n_steps} steps ===")
-        for name, (dx, dy, in_dim, n_cls), hidden in tasks:
+        for name, (dx, dy, in_dim, n_cls), hidden, bsz in tasks:
             gen = torch.Generator(device=device).manual_seed(1234)
-            problem = MLPProblem(dx, dy, hidden, 8, 128, device, gen,
+            problem = MLPProblem(dx, dy, hidden, 8, bsz, device, gen,
                                  in_dim=in_dim, n_classes=n_cls)
             x0 = problem.init_point(gen)
             print(f"  {name}")

@@ -364,6 +364,19 @@ Next levers: longer run (60-100k, curve not flat); width-transfer emphasis (h64 
 add width-48 mass, maybe random width jitter); muon-style aspect-ratio cue already
 available via log a, log b — may need more short-budget image episodes.
 
+## Iteration 25 — 2026-07-11 (batch-size variation + width jitter queued for v7)
+
+- Arthur: "do we also vary batch size?" — we did NOT (B=128 MLPs / 16 LM fixed).
+  Batch size = gradient noise scale; the rule CAN infer noise (successive-gradient
+  trace features = autocorrelation) but only learns to if training varies it.
+- Sampler now varies B in {16..256} (LM {4..32}); log B deliberately NOT fed as input
+  (forces noise inference; generalizes to noise from any source). Width menu replaced
+  by log-uniform jitter in [8,48] (fashion-h64 gap = width extrapolation; jitter makes
+  unseen widths interpolation; h64 still held out). Eval gains noise-transfer rows
+  (fashion h16 at B=16 and unseen B=512).
+- v6 (warm-started, no new sampler) at ~30k/60k: refining around v5's plateau, not
+  climbing past it — scale-alone hypothesis weakening; v7 (this sampler) is the fix run.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)

@@ -162,29 +162,39 @@ def main():
         datasets = registry(device)
         lm_ids, lm_vocab = load_text("shakespeare", device)  # text8 HELD OUT
 
+    def jitter_width():
+        # log-uniform widths in [8, 48]: continuous coverage instead of a menu, so
+        # unseen widths at eval are interpolation, not extrapolation (h64 still held out)
+        w = int(round(8 * (48 / 8) ** rng.random()))
+        depth = rng.choices([1, 2], weights=[3, 1])[0]
+        return w if depth == 1 else (w, int(round(8 * (48 / 8) ** rng.random())))
+
     def sample_problem():
         # held out from meta-training: Fashion-MNIST + pendigits + text8 (data),
         # h64 and (32,32) (MLP shapes)
-        hidden = rng.choice([8, 16, 24, 32, 48, (16, 16), (8, 24), (24, 12), (32, 16)])
+        hidden = jitter_width()
         act = rng.choice(["relu", "tanh"])
+        # batch size varies the gradient-noise scale; deliberately NOT fed as an input —
+        # the rule must infer noise from successive-gradient trace features
+        B = rng.choice([16, 32, 64, 128, 256])
         if not args.multitask:
-            return MLPProblem(train_x, train_y, hidden, args.problems,
-                              args.batch_size, device, activation=act)
+            return MLPProblem(train_x, train_y, hidden, args.problems, B, device,
+                              activation=act)
         kind = rng.choices(["real", "projected", "teacher", "lm"],
                            weights=[7, 3, 2, 3])[0]
         if kind == "lm":
             problem = TransformerLMProblem(
-                lm_ids, lm_vocab, args.problems, max(8, args.batch_size // 8), device,
+                lm_ids, lm_vocab, args.problems, rng.choice([4, 8, 16, 32]), device,
                 d_model=rng.choice([16, 32, 48]), n_layers=rng.randint(1, 3),
                 n_heads=rng.choice([1, 2, 4]), ctx=rng.choice([32, 64]))
         elif kind == "teacher":
             problem = TeacherStudentProblem(
                 rng.choice([16, 64, 256]), rng.randint(2, 10), hidden,
-                args.problems, args.batch_size, device, activation=act)
+                args.problems, B, device, activation=act)
         else:
             dx, dy, in_dim, n_cls = datasets[rng.choice(list(datasets))]
             proj = rng.choice([32, 64, 128, 256]) if kind == "projected" else None
-            problem = MLPProblem(dx, dy, hidden, args.problems, args.batch_size,
+            problem = MLPProblem(dx, dy, hidden, args.problems, B,
                                  device, in_dim=in_dim, n_classes=n_cls,
                                  activation=act, project_to=proj)
         if kind != "lm" and rng.random() < 0.5:
