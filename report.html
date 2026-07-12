@@ -1,0 +1,391 @@
+<title>vectornet scoreboard</title>
+<style>
+:root {
+  --bg:#FAFBF9; --panel:#F1F4F1; --ink:#182126; --mut:#5B6B6E; --line:#D8DFDC;
+  --acc:#0E7C86; --win:#2F7D46; --tie:#8A6D1F; --loss:#B0453A;
+  --win-bg:#E3F0E6; --tie-bg:#F4EDD8; --loss-bg:#F6E4E1; --barb:#B9C6C4;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg:#10151A; --panel:#171E24; --ink:#E6EAEC; --mut:#8FA0A4; --line:#28323A;
+  --acc:#53CFDA; --win:#5DBE7E; --tie:#D4B24A; --loss:#E07B6E;
+  --win-bg:#1A2B20; --tie-bg:#2A2416; --loss-bg:#2E1D1A; --barb:#3A4850;
+} }
+:root[data-theme="dark"] {
+  --bg:#10151A; --panel:#171E24; --ink:#E6EAEC; --mut:#8FA0A4; --line:#28323A;
+  --acc:#53CFDA; --win:#5DBE7E; --tie:#D4B24A; --loss:#E07B6E;
+  --win-bg:#1A2B20; --tie-bg:#2A2416; --loss-bg:#2E1D1A; --barb:#3A4850;
+}
+:root[data-theme="light"] {
+  --bg:#FAFBF9; --panel:#F1F4F1; --ink:#182126; --mut:#5B6B6E; --line:#D8DFDC;
+  --acc:#0E7C86; --win:#2F7D46; --tie:#8A6D1F; --loss:#B0453A;
+  --win-bg:#E3F0E6; --tie-bg:#F4EDD8; --loss-bg:#F6E4E1; --barb:#B9C6C4;
+}
+* { box-sizing:border-box }
+body { background:var(--bg); color:var(--ink); margin:0;
+  font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+main { max-width:1080px; margin:0 auto; padding:40px 28px 80px; }
+.eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--acc); font-weight:600; }
+h1 { font-size:30px; margin:6px 0 4px; letter-spacing:-.01em; text-wrap:balance; }
+.sub { color:var(--mut); margin:0 0 10px; }
+.idbar { display:flex; flex-wrap:wrap; gap:10px 26px; align-items:baseline;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  padding:12px 0; margin:20px 0 8px; font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-size:13px; color:var(--mut); }
+.idbar b { color:var(--ink); font-weight:600; }
+h2 { font-size:18px; margin:38px 0 12px; display:flex; align-items:center; gap:14px;
+  flex-wrap:wrap; }
+.tally { display:inline-flex; gap:6px; }
+.scroll { overflow-x:auto; }
+table { border-collapse:collapse; width:100%; min-width:760px; }
+th { text-align:left; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--mut); font-weight:600; padding:6px 14px 6px 0;
+  border-bottom:1px solid var(--line); }
+td { padding:7px 14px 7px 0; border-bottom:1px solid var(--line);
+  vertical-align:middle; }
+tr.d td { border-bottom:none; padding:1px 14px 1px 0; color:var(--mut);
+  font-size:12.5px; }
+tr.d td:first-child { padding-left:18px; }
+tbody tr.d:last-child td { padding-bottom:10px; }
+.task { font-weight:600; }
+.note { font-size:11px; color:var(--acc); border:1px solid var(--acc);
+  border-radius:9px; padding:0 7px; margin-left:8px; white-space:nowrap;
+  opacity:.85; }
+.num { font-family:ui-monospace,Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums; white-space:nowrap; }
+.strong { color:var(--acc); font-weight:700; }
+.who { color:var(--mut); font-size:12px; }
+.bars { min-width:150px; }
+.bar { height:5px; border-radius:2px; margin:2px 0; }
+.bar.l { background:var(--acc); }
+.bar.b { background:var(--barb); }
+.chip { font-size:11px; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; border-radius:10px; padding:2px 9px;
+  white-space:nowrap; }
+.chip.win { color:var(--win); background:var(--win-bg); }
+.chip.tie { color:var(--tie); background:var(--tie-bg); }
+.chip.loss { color:var(--loss); background:var(--loss-bg); }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:8px;
+  padding:16px 20px; margin-top:34px; }
+.panel h3 { margin:0 0 8px; font-size:14px; }
+.panel p { margin:6px 0; color:var(--mut); font-size:13.5px; max-width:72ch; }
+ol.miles { margin:8px 0 0; padding:0; list-style:none; }
+ol.miles li { padding:5px 0; border-top:1px dashed var(--line); font-size:13.5px;
+  color:var(--mut); }
+ol.miles .v { font-family:ui-monospace,Menlo,monospace; color:var(--acc);
+  font-weight:700; margin-right:12px; }
+footer { margin-top:44px; color:var(--mut); font-size:12px;
+  border-top:1px solid var(--line); padding-top:12px; }
+</style>
+<main>
+  <div class="eyebrow">vectornet &middot; learned optimizer research</div>
+  <h1>Matrix optimizer vs. tuned baselines</h1>
+  <p class="sub">One learned rule, frozen weights, evaluated zero-shot across held-out
+  datasets, architectures, and batch sizes &mdash; against per-task lr-tuned Muon,
+  Adam, SGD and self-tuning Prodigy. &ldquo;learned&rdquo; shows the better of
+  zero-shot and single-scalar &lambda;; sub-rows give every contender.</p>
+  <div class="idbar">
+    <span>checkpoint <b>learned_matrix7.pt</b></span>
+    <span>meta-params <b>28,543</b> (all dimension-free)</span>
+    <span>table <b>eval_matrix7.txt</b></span>
+    <span>rev <b>5b966e6</b></span>
+    <span>updated <b>2026-07-12 22:02 UTC</b></span>
+  </div>
+  
+<section>
+  <h2>20-step budget <span class="tally"><span class="chip win">3 win</span><span class="chip tie">0 tie</span><span class="chip loss">8 loss</span></span></h2>
+  <div class="scroll"><table>
+    <thead><tr><th>task</th><th>learned (best of zs/&lambda;)</th>
+    <th>best tuned baseline</th><th>lower&nbsp;loss&nbsp;&rarr;&nbsp;longer&nbsp;bar</th><th></th></tr></thead>
+    
+<tbody>
+<tr class="t">
+  <td><span class="task">mnist h16 (train domain)</span>
+      </td>
+  <td class="num strong">0.0005</td>
+  <td class="num">0.0018 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:86%"></div>
+      <div class="bar b" style="width:75%"></div></td>
+  <td><span class="chip win">win</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0005</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(1.00)</td><td class="num">0.0005</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0018</td><td class="num">0.999</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.03)</td><td class="num">0.0227</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">0.4769</td><td class="num">0.913</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0936</td><td class="num">0.969</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">mnist h64 (unseen width)</span>
+      <span class="note">width held out</span></td>
+  <td class="num strong">0.0082</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:62%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0096</td><td class="num">0.998</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.25)</td><td class="num">0.0082</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">0.0022</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">0.3154</td><td class="num">0.973</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0825</td><td class="num">0.971</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">mnist (32,32) (unseen shape)</span>
+      <span class="note">shape held out</span></td>
+  <td class="num strong">0.0034</td>
+  <td class="num">0.0021 <span class="who">adam</span></td>
+  <td class="bars"><div class="bar l" style="width:69%"></div>
+      <div class="bar b" style="width:74%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0034</td><td class="num">0.999</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(1.00)</td><td class="num">0.0034</td><td class="num">0.999</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.03)</td><td class="num">0.0032</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.03)</td><td class="num">0.0021</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">0.9036</td><td class="num">0.722</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.1887</td><td class="num">0.944</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">fashion h16 (HELD-OUT dataset)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.3315</td>
+  <td class="num">0.1026 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:30%"></div>
+      <div class="bar b" style="width:40%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.3378</td><td class="num">0.896</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.50)</td><td class="num">0.3315</td><td class="num">0.903</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.1026</td><td class="num">0.968</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">0.5884</td><td class="num">0.825</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.1)</td><td class="num">1.3007</td><td class="num">0.606</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.6104</td><td class="num">0.785</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">fashion h64 (held-out data+width)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.4997</td>
+  <td class="num">0.0039 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:26%"></div>
+      <div class="bar b" style="width:68%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.9302</td><td class="num">0.722</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.50)</td><td class="num">0.4997</td><td class="num">0.839</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0039</td><td class="num">0.999</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">0.2675</td><td class="num">0.931</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">0.8555</td><td class="num">0.717</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.4531</td><td class="num">0.847</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">fashion h16 B=16 (noise transfer)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.0189</td>
+  <td class="num">0.0005 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:54%"></div>
+      <div class="bar b" style="width:86%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.1465</td><td class="num">0.984</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.25)</td><td class="num">0.0189</td><td class="num">0.992</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0005</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.03)</td><td class="num">0.1165</td><td class="num">0.969</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.1)</td><td class="num">0.6056</td><td class="num">0.898</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0481</td><td class="num">0.992</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">fashion h16 B=512 (unseen batch size)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.5849</td>
+  <td class="num">0.4047 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:25%"></div>
+      <div class="bar b" style="width:28%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.6187</td><td class="num">0.781</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.25)</td><td class="num">0.5849</td><td class="num">0.791</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.4047</td><td class="num">0.860</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">0.7727</td><td class="num">0.729</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">1.3408</td><td class="num">0.506</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.8500</td><td class="num">0.695</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">covertype h16 (train domain)</span>
+      </td>
+  <td class="num strong">0.2073</td>
+  <td class="num">0.1236 <span class="who">adam</span></td>
+  <td class="bars"><div class="bar l" style="width:34%"></div>
+      <div class="bar b" style="width:38%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.2073</td><td class="num">0.924</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(1.00)</td><td class="num">0.2073</td><td class="num">0.924</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.4236</td><td class="num">0.836</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.1)</td><td class="num">0.1236</td><td class="num">0.967</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=3.0)</td><td class="num">0.6207</td><td class="num">0.746</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.5445</td><td class="num">0.782</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">pendigits h16 (HELD-OUT dataset)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.0011</td>
+  <td class="num">0.0063 <span class="who">adam</span></td>
+  <td class="bars"><div class="bar l" style="width:79%"></div>
+      <div class="bar b" style="width:64%"></div></td>
+  <td><span class="chip win">win</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0011</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(1.00)</td><td class="num">0.0011</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.3703</td><td class="num">0.905</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.1)</td><td class="num">0.0063</td><td class="num">0.999</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=3.0)</td><td class="num">0.1865</td><td class="num">0.959</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.1186</td><td class="num">0.963</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">pendigits h64 (held-out data+width)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.0001</td>
+  <td class="num">0.0004 <span class="who">adam</span></td>
+  <td class="bars"><div class="bar l" style="width:100%"></div>
+      <div class="bar b" style="width:88%"></div></td>
+  <td><span class="chip win">win</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0003</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(2.00)</td><td class="num">0.0001</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0162</td><td class="num">0.997</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.1)</td><td class="num">0.0004</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=3.0)</td><td class="num">0.0267</td><td class="num">0.999</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0902</td><td class="num">0.970</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">nanogpt d32 L2 on text8 (HELD-OUT corpus; d48 unseen at train? see cfg)</span>
+      <span class="note">corpus held out</span></td>
+  <td class="num strong">1.3147</td>
+  <td class="num">0.6984 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:18%"></div>
+      <div class="bar b" style="width:23%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">1.3147</td><td class="num">0.611</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(1.00)</td><td class="num">1.3147</td><td class="num">0.611</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.6984</td><td class="num">0.787</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">2.1169</td><td class="num">0.382</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">2.6372</td><td class="num">0.207</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">2.3712</td><td class="num">0.302</td><td colspan="2"></td></tr>
+</tbody>
+  </table></div>
+</section>
+<section>
+  <h2>100-step budget <span class="tally"><span class="chip win">0 win</span><span class="chip tie">9 tie</span><span class="chip loss">2 loss</span></span></h2>
+  <div class="scroll"><table>
+    <thead><tr><th>task</th><th>learned (best of zs/&lambda;)</th>
+    <th>best tuned baseline</th><th>lower&nbsp;loss&nbsp;&rarr;&nbsp;longer&nbsp;bar</th><th></th></tr></thead>
+    
+<tbody>
+<tr class="t">
+  <td><span class="task">mnist h16 (train domain)</span>
+      </td>
+  <td class="num strong">0.0000</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:100%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.50)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.03)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.03)</td><td class="num">0.0002</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">0.0276</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0001</td><td class="num">1.000</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">mnist h64 (unseen width)</span>
+      <span class="note">width held out</span></td>
+  <td class="num strong">0.0000</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:100%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0093</td><td class="num">0.999</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(2.00)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.03)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=1.0)</td><td class="num">0.0069</td><td class="num">0.999</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">mnist (32,32) (unseen shape)</span>
+      <span class="note">shape held out</span></td>
+  <td class="num strong">0.0000</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:100%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.25)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.03)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.03)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">0.0118</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">fashion h16 (HELD-OUT dataset)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.0000</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:100%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0062</td><td class="num">0.998</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.50)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.03)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">0.0183</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.1)</td><td class="num">0.3897</td><td class="num">0.917</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0002</td><td class="num">1.000</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">fashion h64 (held-out data+width)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.9342</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:21%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">5.9541</td><td class="num">0.604</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.25)</td><td class="num">0.9342</td><td class="num">0.748</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.03)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">0.0035</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">0.1723</td><td class="num">0.949</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0043</td><td class="num">1.000</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">fashion h16 B=16 (noise transfer)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.0000</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:100%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.50)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.03)</td><td class="num">0.0007</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.1)</td><td class="num">0.0394</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">fashion h16 B=512 (unseen batch size)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.0998</td>
+  <td class="num">0.0121 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:40%"></div>
+      <div class="bar b" style="width:58%"></div></td>
+  <td><span class="chip loss">loss</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0998</td><td class="num">0.974</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(1.00)</td><td class="num">0.0998</td><td class="num">0.974</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.03)</td><td class="num">0.0121</td><td class="num">0.996</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">0.0996</td><td class="num">0.985</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">0.5987</td><td class="num">0.775</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.1935</td><td class="num">0.932</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">covertype h16 (train domain)</span>
+      </td>
+  <td class="num strong">0.0002</td>
+  <td class="num">0.0002 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:94%"></div>
+      <div class="bar b" style="width:94%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0005</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.50)</td><td class="num">0.0002</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0002</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.1)</td><td class="num">0.0008</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=3.0)</td><td class="num">0.0416</td><td class="num">0.997</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0140</td><td class="num">0.993</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">pendigits h16 (HELD-OUT dataset)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.0000</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:100%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(1.00)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.1)</td><td class="num">0.0001</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=3.0)</td><td class="num">0.0047</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">pendigits h64 (held-out data+width)</span>
+      <span class="note">dataset held out</span></td>
+  <td class="num strong">0.0000</td>
+  <td class="num">0.0000 <span class="who">muon</span></td>
+  <td class="bars"><div class="bar l" style="width:100%"></div>
+      <div class="bar b" style="width:100%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.50)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.1)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.1)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=3.0)</td><td class="num">0.0023</td><td class="num">1.000</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0000</td><td class="num">1.000</td><td colspan="2"></td></tr>
+</tbody>
+<tbody>
+<tr class="t">
+  <td><span class="task">nanogpt d32 L2 on text8 (HELD-OUT corpus; d48 unseen at train? see cfg)</span>
+      <span class="note">corpus held out</span></td>
+  <td class="num strong">0.0155</td>
+  <td class="num">0.0176 <span class="who">prodigy</span></td>
+  <td class="bars"><div class="bar l" style="width:56%"></div>
+      <div class="bar b" style="width:55%"></div></td>
+  <td><span class="chip tie">tie</span></td>
+</tr>
+<tr class="d"><td>learned zero-shot</td><td class="num">0.0332</td><td class="num">0.991</td><td colspan="2"></td></tr><tr class="d"><td>learned tuned-lambda(0.25)</td><td class="num">0.0155</td><td class="num">0.993</td><td colspan="2"></td></tr><tr class="d"><td>muon (lr=0.01)</td><td class="num">0.0489</td><td class="num">0.993</td><td colspan="2"></td></tr><tr class="d"><td>adam (lr=0.01)</td><td class="num">0.0205</td><td class="num">0.993</td><td colspan="2"></td></tr><tr class="d"><td>sgd (lr=0.3)</td><td class="num">1.1656</td><td class="num">0.666</td><td colspan="2"></td></tr><tr class="d"><td>prodigy (lr=1.0)</td><td class="num">0.0176</td><td class="num">0.993</td><td colspan="2"></td></tr>
+</tbody>
+  </table></div>
+</section>
+  <div class="panel">
+    <h3>Scale benchmark (the open front)</h3>
+    <p>10.7M-param char-GPT on text8 (d384 &middot; 6 layers &middot; ctx 128,
+    stochastic batches) &mdash; 100&times; beyond the meta-training distribution.
+    First measurement (v7): the learned rule <b>regresses</b> where tuned Muon
+    descends. v9 trains against the diagnosed gaps (per-step batch resampling,
+    larger layer geometry). Refreshed here when v9&rsquo;s eval lands.</p>
+  </div>
+  <div class="panel">
+    <h3>Milestones</h3>
+    <ol class="miles"><li><span class="v">v2</span>MNIST-only distro; matches tuned Muon on 100-step MNIST probe</li><li><span class="v">v4</span>task zoo; first zero-shot wins over ALL tuned baselines (pendigits@20)</li><li><span class="v">v5</span>time inputs + cross-layer + capacity; calibration fixed (lambda*=1)</li><li><span class="v">v7</span>noise + width variation; beats Muon on MNIST h16@20; wins nanoGPT@100</li><li><span class="v">v8</span>width support to 96: fashion-h64 probe 46-68% -&gt; 93%</li><li><span class="v">v9</span>training: resampled episodes (real SGD), d&lt;=128 nanoGPTs, OpenML-54</li></ol>
+  </div>
+  <footer>Meta-trained on an RTX&nbsp;3060 &middot; PES (evolution strategies), no
+  backprop through unrolls &middot; held out everywhere: Fashion-MNIST, pendigits,
+  text8, 13 OpenML datasets, MLP shapes h64 &amp; (32,32). Repo:
+  murbard/vectornet.</footer>
+</main>

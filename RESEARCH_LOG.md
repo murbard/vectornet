@@ -411,6 +411,23 @@ eval_matrix7.txt (probe-best checkpoint, run still going):
   CC-18 would have silently invalidated both holdout claims.
 - v8 (width support) still training; v9 = v8-warm-start + --openml.
 
+## Iteration 28 — 2026-07-12 (priority reset: SPEED; scale gap measured; v9 launched)
+
+- Arthur: memory deprioritized ("people would take 3x-Muon memory for 10% speed"),
+  goal = fastest optimizer. New North Star: eval_scale.py — 10.7M-param char-GPT
+  (d384/L6/ctx128) on text8, stochastic batches, learned vs tuned muon vs
+  adamw+warmup+cosine, eval-loss trajectories + ms/step.
+- **First scale measurement (v7 ckpt): FAILS. Learned rule regresses (3.53->4.64 in 6
+  steps) while muon descends (2.96->2.63).** Diagnosis: distribution gaps — (a) never
+  saw per-step batch resampling, (b) d<=48 trained vs 384, (c) unseen vocab/ctx
+  geometry. Also ~2.2x muon's ms/step on CPU (unmeasured on GPU).
+- Fixes into the sampler: resampled episodes (p=0.5) with COMMON RANDOM NUMBERS across
+  PES particles (seeded draws; without CRN batch noise destroys antithetic variance
+  reduction); nanoGPT configs to d128/L4/ctx128; OpenML 54-dataset population.
+- v8 cut at 9k/40k (width-only attribution sacrificed for speed; its jitter is in v9's
+  sampler anyway). **v9 launched: warm-start v8, full stack, 50k steps.**
+- After v9: eval_scale + fairness table + openml-holdout population row.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
