@@ -120,6 +120,8 @@ def main():
                     help="feed log(1+t) and t/T to the scalar net (horizon-aware schedules)")
     ap.add_argument("--cross-layer", action="store_true",
                     help="adjacent-layer gradient-covariance couplings (Shampoo/K-FAC span)")
+    ap.add_argument("--openml", action="store_true",
+                    help="add the OpenML-CC18 train split (56 datasets) to the zoo")
     ap.add_argument("--init-from", default=None,
                     help="warm-start meta-parameters from a checkpoint (must match arch)")
     ap.add_argument("--big", action="store_true",
@@ -158,9 +160,15 @@ def main():
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(meta_opt, T_max=args.meta_steps)
 
     if args.multitask:
-        from datasets import load_text, registry
+        from datasets import load_text, openml_registry, registry
         datasets = registry(device)
         lm_ids, lm_vocab = load_text("shakespeare", device)  # text8 HELD OUT
+        if args.openml:
+            cpu = torch.device("cpu")
+            oml_train, _ = openml_registry(cpu, verbose=False)
+            datasets.update(oml_train)  # CPU-resident; MLPProblem moves minibatches
+            print(f"openml: +{len(oml_train)} train datasets (13 held out by dataset)",
+                  flush=True)
 
     def jitter_width():
         # log-uniform widths in [8, 96]: h64 becomes interpolation (v7 showed the

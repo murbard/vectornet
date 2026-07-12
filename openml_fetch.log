@@ -1,0 +1,2 @@
+openml: 56 train datasets, 13 HELD OUT (['oml:Devnagari-Script', 'oml:banknote-authentication', 'oml:cmc', 'oml:credit-g', 'oml:isolet', 'oml:kc1', 'oml:nomao', 'oml:pc1', 'oml:pc4', 'oml:semeion', 'oml:texture', 'oml:tic-tac-toe', 'oml:wdbc'])
+DONE 56 13

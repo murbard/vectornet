@@ -159,6 +159,75 @@ def registry(device, verbose=True):
     return out
 
 
+# ----------------------------------------------------------------- OpenML suite
+
+def openml_registry(device, max_features=1024, max_rows=200_000, holdout_frac=0.2,
+                    seed=7, verbose=True):
+    """
+    OpenML-CC18 as a dataset population. Returns (train_dict, holdout_dict), each
+    {name: (x, y, in_dim, n_classes)}. The holdout split is BY DATASET (a random
+    fraction of the suite), enabling 'generalization to unseen datasets' claims with
+    population statistics. Categorical features are one-hot encoded (capped), numeric
+    features z-scored. Datasets are cached as .npz after first fetch.
+    """
+    import random as _random
+
+    import numpy as np
+    import openml
+
+    cache_dir = os.path.join(CACHE, "openml_npz")
+    os.makedirs(cache_dir, exist_ok=True)
+    suite = openml.study.get_suite("OpenML-CC18")
+    out = {}
+    for tid in suite.tasks:
+        try:
+            npz = os.path.join(cache_dir, f"task{tid}.npz")
+            if os.path.exists(npz):
+                d = np.load(npz, allow_pickle=True)
+                x, y, name = d["x"], d["y"], str(d["name"])
+            else:
+                task = openml.tasks.get_task(tid, download_splits=False)
+                ds = task.get_dataset()
+                X, Y, cat, _ = ds.get_data(target=task.target_name,
+                                           dataset_format="dataframe")
+                if len(X) > max_rows:
+                    continue
+                import pandas as pd
+                X = pd.get_dummies(X)  # one-hot categoricals, keeps numerics
+                x = X.to_numpy(dtype=np.float32)
+                x = np.nan_to_num(x, nan=0.0)
+                if x.shape[1] > max_features or x.shape[1] < 3:
+                    continue
+                _, y = np.unique(Y.to_numpy(), return_inverse=True)
+                y = y.astype(np.int64)
+                mu, sd = x.mean(0), x.std(0) + 1e-8
+                x = (x - mu) / sd
+                name = ds.name
+                np.savez(npz, x=x, y=y, name=name)
+            out[f"oml:{name}"] = (torch.from_numpy(x).to(device),
+                                  torch.from_numpy(y).to(device),
+                                  x.shape[1], int(y.max()) + 1)
+        except Exception as e:
+            if verbose:
+                print(f"  openml task {tid} skipped: {type(e).__name__}", flush=True)
+    # our transfer-eval holdouts must never enter meta-training via a CC-18 alias
+    EXCLUDE = ("fashion", "pendigit")
+    dropped = [n for n in out if any(k in n.lower() for k in EXCLUDE)]
+    for n in dropped:
+        del out[n]
+    if verbose and dropped:
+        print(f"openml: excluded eval-holdout aliases {dropped}", flush=True)
+    names = sorted(out)
+    _random.Random(seed).shuffle(names)
+    k = int(len(names) * holdout_frac)
+    holdout = {n: out[n] for n in names[:k]}
+    train = {n: out[n] for n in names[k:]}
+    if verbose:
+        print(f"openml: {len(train)} train datasets, {len(holdout)} HELD OUT "
+              f"({sorted(holdout)})", flush=True)
+    return train, holdout
+
+
 # ------------------------------------------------------------- char-level text
 
 def load_text(name, device):

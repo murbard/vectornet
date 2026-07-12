@@ -283,13 +283,20 @@ class MLPProblem:
         self.shapes = list(zip(dims, dims[1:]))
         self.activation = activation
         self.n_params = sum(a * b + b for a, b in self.shapes)
-        idx = torch.randint(len(images), (P, batch_size), device=device, generator=generator)
-        self.x_data = images[idx]  # (P, B, in_dim)
+        if images.device != device:  # dataset resident on CPU: sample there, move batch
+            idx = torch.randint(len(images), (P, batch_size))
+            self.x_data = images[idx].to(device)
+            self.y_data_pre = labels[idx].to(device)
+        else:
+            idx = torch.randint(len(images), (P, batch_size), device=device,
+                                generator=generator)
+            self.x_data = images[idx]  # (P, B, in_dim)
+            self.y_data_pre = labels[idx]
         if project_to:
             R = torch.randn(in_dim, project_to, device=device,
                             generator=generator) / math.sqrt(in_dim)
             self.x_data = self.x_data @ R
-        self.y_data = labels[idx]  # (P, B)
+        self.y_data = self.y_data_pre  # (P, B)
         self.P, self.B = P, batch_size
         self.device = device
 
