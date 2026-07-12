@@ -54,6 +54,10 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
         for k in range(n_part):
             vector_to_parameters(theta.detach() + eps[k], model.parameters())
             p = particles[k]
+            if getattr(problem, "resample", False):
+                # common random numbers: every particle replays the same batch sequence
+                problem.draw_seed_base = 7919 * step
+                problem.draw_counter = steps_done
             x = p["x"].detach().requires_grad_(True)
             if p["H"] is None:
                 H, s = model.init_state(x.shape[0], problem.shapes, device)
@@ -192,11 +196,19 @@ def main():
                               activation=act)
         kind = rng.choices(["real", "projected", "teacher", "lm"],
                            weights=[7, 3, 2, 3])[0]
+        # resampled (real-SGD) episodes half the time: stochastic objectives are the
+        # regime of actual model training (the scale benchmark showed the fixed-batch
+        # rule regresses under per-step resampling)
+        res = rng.random() < 0.5
         if kind == "lm":
+            # d up to 128: shrink the geometry gap to the scale benchmark (d=384)
+            d_lm = rng.choice([16, 32, 48, 96, 128])
             problem = TransformerLMProblem(
-                lm_ids, lm_vocab, args.problems, rng.choice([4, 8, 16, 32]), device,
-                d_model=rng.choice([16, 32, 48]), n_layers=rng.randint(1, 3),
-                n_heads=rng.choice([1, 2, 4]), ctx=rng.choice([32, 64]))
+                lm_ids, lm_vocab, min(args.problems, 4 if d_lm > 48 else 8),
+                rng.choice([4, 8, 16, 32]), device,
+                d_model=d_lm, n_layers=rng.randint(1, 4 if d_lm > 48 else 3),
+                n_heads=rng.choice([2, 4]), ctx=rng.choice([32, 64, 128]),
+                resample=res)
         elif kind == "teacher":
             problem = TeacherStudentProblem(
                 rng.choice([16, 64, 256]), rng.randint(2, 10), hidden,
@@ -206,7 +218,7 @@ def main():
             proj = rng.choice([32, 64, 128, 256]) if kind == "projected" else None
             problem = MLPProblem(dx, dy, hidden, args.problems, B,
                                  device, in_dim=in_dim, n_classes=n_cls,
-                                 activation=act, project_to=proj)
+                                 activation=act, project_to=proj, resample=res)
         if kind != "lm" and rng.random() < 0.5:
             problem = ReparamWrapper(problem, param_scale=10.0 ** rng.uniform(-1, 1),
                                      loss_scale=10.0 ** rng.uniform(-2, 2))

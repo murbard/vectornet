@@ -274,31 +274,51 @@ class MLPProblem:
     """
 
     def __init__(self, images, labels, hidden, P, batch_size, device, generator=None,
-                 in_dim=784, n_classes=10, activation="relu", project_to=None):
+                 in_dim=784, n_classes=10, activation="relu", project_to=None,
+                 resample=False):
         # project_to: pass the minibatch through a random projection to that input
         # dimension — turns one dataset into a family of tasks of arbitrary in_dim
+        # resample: fresh minibatch on every objective call (real SGD semantics)
         eff_in = project_to or in_dim
         hiddens = [hidden] if isinstance(hidden, int) else list(hidden)
         dims = [eff_in] + hiddens + [n_classes]
         self.shapes = list(zip(dims, dims[1:]))
         self.activation = activation
         self.n_params = sum(a * b + b for a, b in self.shapes)
-        if images.device != device:  # dataset resident on CPU: sample there, move batch
-            idx = torch.randint(len(images), (P, batch_size))
-            self.x_data = images[idx].to(device)
-            self.y_data_pre = labels[idx].to(device)
-        else:
-            idx = torch.randint(len(images), (P, batch_size), device=device,
-                                generator=generator)
-            self.x_data = images[idx]  # (P, B, in_dim)
-            self.y_data_pre = labels[idx]
-        if project_to:
-            R = torch.randn(in_dim, project_to, device=device,
-                            generator=generator) / math.sqrt(in_dim)
-            self.x_data = self.x_data @ R
-        self.y_data = self.y_data_pre  # (P, B)
         self.P, self.B = P, batch_size
         self.device = device
+        self.resample = resample
+        self._images, self._labels = images, labels
+        self._R = (torch.randn(in_dim, project_to, device=device,
+                               generator=generator) / math.sqrt(in_dim)
+                   if project_to else None)
+        self._draw(generator)
+
+    def _draw(self, generator=None):
+        images, labels, device = self._images, self._labels, self.device
+        if getattr(self, "draw_seed_base", None) is not None:
+            # common random numbers across PES particles: same counter -> same batch
+            generator = torch.Generator(device=images.device)
+            generator.manual_seed(self.draw_seed_base + self.draw_counter)
+            self.draw_counter += 1
+            idx = torch.randint(len(images), (self.P, self.B),
+                                device=images.device, generator=generator)
+            self.x_data = images[idx].to(device)
+            self.y_data = labels[idx].to(device)
+            if self._R is not None:
+                self.x_data = self.x_data @ self._R
+            return
+        if images.device != device:  # dataset resident on CPU: sample there, move batch
+            idx = torch.randint(len(images), (self.P, self.B))
+            self.x_data = images[idx].to(device)
+            self.y_data = labels[idx].to(device)
+        else:
+            idx = torch.randint(len(images), (self.P, self.B), device=device,
+                                generator=generator)
+            self.x_data = images[idx]  # (P, B, in_dim)
+            self.y_data = labels[idx]
+        if self._R is not None:
+            self.x_data = self.x_data @ self._R
 
     def init_point(self, generator=None):
         # per-layer fan-in scaling, applied at init only; the optimizer itself
@@ -324,6 +344,8 @@ class MLPProblem:
         return z
 
     def objective(self, x, sel=slice(None)):
+        if self.resample:
+            self._draw()
         logp = F.log_softmax(self.logits(x, sel), dim=2)
         return -logp.gather(2, self.y_data[sel].unsqueeze(2)).squeeze(2).mean(dim=1)  # (P,)
 
@@ -372,6 +394,7 @@ class TeacherStudentProblem(MLPProblem):
         self.activation = activation
         self.n_params = sum(a * b + b for a, b in self.shapes)
         self.P, self.B, self.device = P, batch_size, device
+        self.resample = False
         self.x_data = torch.randn(P, batch_size, d_in, device=device, generator=generator)
         W1 = torch.randn(P, d_in, teacher_hidden, device=device,
                          generator=generator) / math.sqrt(d_in)

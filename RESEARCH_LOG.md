@@ -391,6 +391,26 @@ eval_matrix7.txt (probe-best checkpoint, run still going):
 - Remaining: fashion h64 (only clear loss at both budgets); muon short-budget edges on
   fashion h16/nanogpt/mnist h64 @20.
 
+## Iteration 27 — 2026-07-12 (anatomy probe; OpenML population; leak caught)
+
+- **Anatomy of learned_matrix7** (direction/spectral probe, MNIST h16, 100 steps):
+  updates are NOT re-learned Muon — stable rank ~4 (gradient ~1.2, muon ~10), early
+  momentum-like (cos ~0.64 with muon/momentum), later history-dominated (all reference
+  correlations drop to 0.1-0.2: most of the direction lives in accumulated state).
+  Portrait: closed-loop noise-aware controller, moderately rank-expanded history-mixed
+  directions, per-layer learned step sizes, plateau-reactive schedule.
+- **Memory-at-apply analysis** (Arthur): state = k_hidden x params (6x in --big; Adam
+  2x, Muon 1x). Controllable: k is a dial (lean k=2 variant queued); factored rank-r
+  hidden matrices (UV^T, r(a+b) per slot — Adafactor-style) = principled sub-linear
+  extension. Compute/step ~ Muon's NS budget already.
+- **OpenML-CC18 integrated**: 69 datasets cached (~1GB npz), split BY DATASET into
+  54 train / 13 held out -> population-level transfer claims. --openml flag; CPU-
+  resident with per-minibatch device transfer.
+- **LEAK CAUGHT: CC-18 contains Fashion-MNIST and pendigits — both landed in the
+  OpenML train split.** Now hard-excluded by alias pattern. Any run trained on raw
+  CC-18 would have silently invalidated both holdout claims.
+- v8 (width support) still training; v9 = v8-warm-start + --openml.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)

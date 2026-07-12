@@ -22,18 +22,14 @@ class TransformerLMProblem:
     has_biases = False  # every parameter is a matrix
 
     def __init__(self, text_ids, vocab, P, batch_size, device, generator=None,
-                 d_model=32, n_layers=2, n_heads=2, ctx=64):
+                 d_model=32, n_layers=2, n_heads=2, ctx=64, resample=False):
         assert d_model % n_heads == 0
         self.V, self.d, self.L, self.h, self.T = vocab, d_model, n_layers, n_heads, ctx
         self.P, self.B, self.device = P, batch_size, device
-
-        # sample (P, B) random windows of T+1 chars
-        starts = torch.randint(len(text_ids) - ctx - 1, (P, batch_size),
-                               device=device, generator=generator)
-        offs = torch.arange(ctx + 1, device=device)
-        chunks = text_ids[starts.unsqueeze(-1) + offs]  # (P, B, T+1)
-        self.x_tok = chunks[:, :, :-1]
-        self.y_tok = chunks[:, :, 1:]
+        # resample=True: fresh random windows on every objective call (real SGD
+        # semantics); False: one fixed minibatch (a deterministic optimizee)
+        self.resample = resample
+        self.text_ids = text_ids
 
         d, V, T = d_model, vocab, ctx
         self.shapes = [(V, d), (T, d)]
@@ -43,6 +39,20 @@ class TransformerLMProblem:
         self.shapes += [(d, V)]
         self.n_params = sum(a * b for a, b in self.shapes)  # no biases anywhere
         self.mask = torch.full((T, T), float("-inf"), device=device).triu(1)
+        self._draw(generator)
+
+    def _draw(self, generator=None):
+        if getattr(self, "draw_seed_base", None) is not None:
+            # common random numbers across PES particles
+            generator = torch.Generator(device=self.device)
+            generator.manual_seed(self.draw_seed_base + self.draw_counter)
+            self.draw_counter += 1
+        starts = torch.randint(len(self.text_ids) - self.T - 1, (self.P, self.B),
+                               device=self.device, generator=generator)
+        offs = torch.arange(self.T + 1, device=self.device)
+        chunks = self.text_ids[starts.unsqueeze(-1) + offs]  # (P, B, T+1)
+        self.x_tok = chunks[:, :, :-1]
+        self.y_tok = chunks[:, :, 1:]
 
     def init_point(self, generator=None):
         parts = []
@@ -84,6 +94,8 @@ class TransformerLMProblem:
         return torch.einsum("pbtd,pdv->pbtv", rmsnorm(z), U)
 
     def objective(self, x):
+        if self.resample:
+            self._draw()
         logp = F.log_softmax(self.logits(x), dim=-1)
         nll = -logp.gather(-1, self.y_tok.unsqueeze(-1)).squeeze(-1)  # (P,B,T)
         return nll.mean(dim=(1, 2))  # (P,)
