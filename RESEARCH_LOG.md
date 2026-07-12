@@ -377,6 +377,20 @@ available via log a, log b — may need more short-budget image episodes.
 - v6 (warm-started, no new sampler) at ~30k/60k: refining around v5's plateau, not
   climbing past it — scale-alone hypothesis weakening; v7 (this sampler) is the fix run.
 
+## Iteration 26 — 2026-07-12 (v7 interim @32k: first wins over tuned Muon head-on)
+
+eval_matrix7.txt (probe-best checkpoint, run still going):
+- **ZERO-SHOT BEATS ALL TUNED BASELINES: mnist h16@20 (0.0005 vs muon 0.0018 — image
+  MLP short budget, Muon's home turf, lambda*=1), pendigits h16+h64@20.**
+- **nanogpt/text8@100: zero-shot 0.033 beats tuned muon (0.049); lambda 0.0155 beats
+  EVERYTHING (adam 0.021, prodigy 0.018).** First all-baseline transformer win.
+- Ties-best on most of the @100 suite (all mnist, fashion h16 lambda=muon=0.0000,
+  fashion B=16, covertype lambda ties muon, pendigits both).
+- **Noise inference works**: unseen B=512 zero-shot beats tuned adam and prodigy at
+  both budgets (muon keeps an edge). B=16 ties best @100.
+- Remaining: fashion h64 (only clear loss at both budgets); muon short-budget edges on
+  fashion h16/nanogpt/mnist h64 @20.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)

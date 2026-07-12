@@ -79,6 +79,7 @@ def main():
         ("mnist (32,32) (unseen shape)", mnist, (32, 32), 128),
         ("fashion h16 (HELD-OUT dataset)", fashion, 16, 128),
         ("fashion h64 (held-out data+width)", fashion, 64, 128),
+        ("fashion h128 (held-out width extrapolation)", fashion, 128, 128),
         ("fashion h16 B=16 (noise transfer)", fashion, 16, 16),
         ("fashion h16 B=512 (unseen batch size)", fashion, 16, 512),
         ("covertype h16 (train domain)", cov, 16, 128),

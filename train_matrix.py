@@ -163,9 +163,11 @@ def main():
         lm_ids, lm_vocab = load_text("shakespeare", device)  # text8 HELD OUT
 
     def jitter_width():
-        # log-uniform widths in [8, 48]: continuous coverage instead of a menu, so
-        # unseen widths at eval are interpolation, not extrapolation (h64 still held out)
-        w = int(round(8 * (48 / 8) ** rng.random()))
+        # log-uniform widths in [8, 96]: h64 becomes interpolation (v7 showed the
+        # fashion-h64 loss was width extrapolation beyond the [8,48] support);
+        # the width-transfer holdout moves to h128
+        w = int(round(8 * (96 / 8) ** rng.random()))
+        w = w if abs(w - 64) > 4 else 56  # keep a small exclusion window at h64
         depth = rng.choices([1, 2], weights=[3, 1])[0]
         return w if depth == 1 else (w, int(round(8 * (48 / 8) ** rng.random())))
 
