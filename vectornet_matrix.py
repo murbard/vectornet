@@ -52,7 +52,7 @@ class MatrixUnit(nn.Module):
 
     def __init__(self, k_hidden=4, k_mid=8, n_triples=4, n_scal_local=16,
                  n_scal_global=16, n_dot=16, n_scal_hidden=64, time_inputs=False,
-                 cross_layer=False):
+                 cross_layer=False, fanin_gauge=False):
         super().__init__()
         self.k_hidden, self.k_mid, self.n_triples = k_hidden, k_mid, n_triples
         self.n_scal_local, self.n_scal_global = n_scal_local, n_scal_global
@@ -65,6 +65,12 @@ class MatrixUnit(nn.Module):
         # couplings under the TRUE MLP symmetry W_l Q, Q^T W_{l+1}; the Shampoo/K-FAC
         # family lives in this span)
         self.cross_layer = cross_layer
+        # fanin_gauge: multiply each layer's update by sqrt(48/fan_in) — the muP-style
+        # width-scaling law, gauged to ~1 on the trained geometry. The learned step
+        # then encodes deviation from a scale-correct baseline, so step-size
+        # calibration extrapolates to unseen widths by construction (measured at
+        # d=384: zero-shot needed exactly ~sqrt(48/384) correction).
+        self.fanin_gauge = fanin_gauge
 
         k_in = k_hidden + 1 + (2 if cross_layer else 0)
         k_pool = k_mid + n_triples               # mid stack after the quadratic stage
@@ -219,7 +225,9 @@ class LearnedMatrixOptimizer(nn.Module):
             delta, Hn, sn, log_step = self.unit(Gm, H[l], s[l], s_global, y,
                                                 t=t, budget=budget,
                                                 cross=cross_feats(l))
-            new_x.append(x[:, i:i + aa * bb] + delta.reshape(x.shape[0], aa * bb) * lr_scale)
+            gauge = math.sqrt(48.0 / aa) if self.unit.fanin_gauge else 1.0
+            new_x.append(x[:, i:i + aa * bb]
+                         + delta.reshape(x.shape[0], aa * bb) * (lr_scale * gauge))
             i += aa * bb
             if has_biases:
                 # bias block: normalized-gradient step at the layer's learned step size,

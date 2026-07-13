@@ -124,6 +124,8 @@ def main():
                     help="feed log(1+t) and t/T to the scalar net (horizon-aware schedules)")
     ap.add_argument("--cross-layer", action="store_true",
                     help="adjacent-layer gradient-covariance couplings (Shampoo/K-FAC span)")
+    ap.add_argument("--fanin-gauge", action="store_true",
+                    help="scale updates by sqrt(48/fan_in): muP-style width extrapolation")
     ap.add_argument("--openml", action="store_true",
                     help="add the OpenML-CC18 train split (56 datasets) to the zoo")
     ap.add_argument("--init-from", default=None,
@@ -155,7 +157,8 @@ def main():
     size_kwargs = ({"k_hidden": 6, "k_mid": 12, "n_triples": 6, "n_dot": 24,
                     "n_scal_hidden": 96} if args.big else {})
     model = LearnedMatrixOptimizer(time_inputs=args.time_inputs,
-                                   cross_layer=args.cross_layer, **size_kwargs).to(device)
+                                   cross_layer=args.cross_layer,
+                                   fanin_gauge=args.fanin_gauge, **size_kwargs).to(device)
     if args.init_from:
         model.load_state_dict(torch.load(args.init_from, map_location=device)["state_dict"])
         print(f"warm-started from {args.init_from}", flush=True)
@@ -201,11 +204,11 @@ def main():
         # rule regresses under per-step resampling)
         res = rng.random() < 0.5
         if kind == "lm":
-            # d up to 128: shrink the geometry gap to the scale benchmark (d=384)
-            d_lm = rng.choice([16, 32, 48, 96, 128])
+            # d up to 256: shrink the geometry gap to the scale benchmark (d=384)
+            d_lm = rng.choice([16, 32, 48, 96, 128, 256])
+            n_prob = 2 if d_lm > 128 else (4 if d_lm > 48 else min(args.problems, 8))
             problem = TransformerLMProblem(
-                lm_ids, lm_vocab, min(args.problems, 4 if d_lm > 48 else 8),
-                rng.choice([4, 8, 16, 32]), device,
+                lm_ids, lm_vocab, n_prob, rng.choice([4, 8, 16, 32]), device,
                 d_model=d_lm, n_layers=rng.randint(1, 4 if d_lm > 48 else 3),
                 n_heads=rng.choice([2, 4]), ctx=rng.choice([32, 64, 128]),
                 resample=res)
