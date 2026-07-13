@@ -204,13 +204,19 @@ def main():
         # rule regresses under per-step resampling)
         res = rng.random() < 0.5
         if kind == "lm":
-            # d up to 256: shrink the geometry gap to the scale benchmark (d=384)
+            # d up to 256: shrink the geometry gap to the scale benchmark (d=384).
+            # memory: PES particles each hold k_hidden x params of state, so the
+            # biggest configs run tiny (P=1, ctx<=64, L<=2, B<=8)
             d_lm = rng.choice([16, 32, 48, 96, 128, 256])
-            n_prob = 2 if d_lm > 128 else (4 if d_lm > 48 else min(args.problems, 8))
+            big = d_lm > 128
+            n_prob = 1 if big else (4 if d_lm > 48 else min(args.problems, 8))
             problem = TransformerLMProblem(
-                lm_ids, lm_vocab, n_prob, rng.choice([4, 8, 16, 32]), device,
-                d_model=d_lm, n_layers=rng.randint(1, 4 if d_lm > 48 else 3),
-                n_heads=rng.choice([2, 4]), ctx=rng.choice([32, 64, 128]),
+                lm_ids, lm_vocab, n_prob,
+                rng.choice([4, 8] if big else [4, 8, 16, 32]), device,
+                d_model=d_lm,
+                n_layers=rng.randint(1, 2 if big else (4 if d_lm > 48 else 3)),
+                n_heads=rng.choice([2, 4]),
+                ctx=rng.choice([32, 64] if big else [32, 64, 128]),
                 resample=res)
         elif kind == "teacher":
             problem = TeacherStudentProblem(
