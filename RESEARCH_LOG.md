@@ -428,6 +428,17 @@ eval_matrix7.txt (probe-best checkpoint, run still going):
   sampler anyway). **v9 launched: warm-start v8, full stack, 50k steps.**
 - After v9: eval_scale + fairness table + openml-holdout population row.
 
+## Iteration 29 — 2026-07-13 (mid-v10 scale reading: gauge works, gap narrowing)
+
+10.7M GPT scale check, v10 @12k/40k steps (gauge active), 100 steps, eval loss:
+  zero-shot (lam=1): 3.78 -> 2.89   (v7 zero-shot REGRESSED; first clean zero-shot descent)
+  lam=0.5:           3.88 -> 2.53
+  tuned muon 0.01:   3.38 -> 2.42
+Gauge removed the width-dependent miscalibration (lam* moved 0.25 -> ~0.5; residual ~2x
+overstep is width-independent, plausibly trainable). Gap to tuned muon now 0.11 nats
+with one scalar, 0.47 zero-shot, at 30% of v10's training. Watch: learned rule is ~3-5x
+muon ms/step on CPU (kernel-launch-bound; GPU profile pending).
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
