@@ -28,7 +28,8 @@ MILESTONES = [
     ("v5", "time inputs + cross-layer + capacity; calibration fixed (lambda*=1)"),
     ("v7", "noise + width variation; beats Muon on MNIST h16@20; wins nanoGPT@100"),
     ("v8", "width support to 96: fashion-h64 probe 46-68% -> 93%"),
-    ("v9", "training: resampled episodes (real SGD), d<=128 nanoGPTs, OpenML-54"),
+    ("v9", "resampled episodes (real SGD), d<=128 nanoGPTs, OpenML-54 population"),
+    ("v10", "muP fan-in gauge (scale fix: lambda*~sqrt(48/384) diagnosed), d<=256 - TRAINING"),
 ]
 
 
@@ -230,9 +231,12 @@ footer {{ margin-top:44px; color:var(--mut); font-size:12px;
     <h3>Scale benchmark (the open front)</h3>
     <p>10.7M-param char-GPT on text8 (d384 &middot; 6 layers &middot; ctx 128,
     stochastic batches) &mdash; 100&times; beyond the meta-training distribution.
-    First measurement (v7): the learned rule <b>regresses</b> where tuned Muon
-    descends. v9 trains against the diagnosed gaps (per-step batch resampling,
-    larger layer geometry). Refreshed here when v9&rsquo;s eval lands.</p>
+    Zero-shot initially regressed; the &lambda;-diagnostic showed the <b>direction
+    survives scale</b> and only step calibration fails, by exactly the &mu;P factor
+    &radic;(48/384). v10 bakes that gauge into the update (learned step = deviation
+    from a scale-correct baseline) and trains d&le;256 transformers. Latest 100-step
+    reading at scale: learned &lambda;=0.25 reaches 2.90 vs tuned Muon 2.43.
+    Refreshed when v10&rsquo;s eval lands.</p>
   </div>
   <div class="panel">
     <h3>Milestones</h3>

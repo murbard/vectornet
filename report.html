@@ -88,8 +88,8 @@ footer { margin-top:44px; color:var(--mut); font-size:12px;
     <span>checkpoint <b>learned_matrix7.pt</b></span>
     <span>meta-params <b>28,543</b> (all dimension-free)</span>
     <span>table <b>eval_matrix7.txt</b></span>
-    <span>rev <b>5b966e6</b></span>
-    <span>updated <b>2026-07-12 22:02 UTC</b></span>
+    <span>rev <b>bc1cdfc</b></span>
+    <span>updated <b>2026-07-13 10:31 UTC</b></span>
   </div>
   
 <section>
@@ -376,13 +376,16 @@ footer { margin-top:44px; color:var(--mut); font-size:12px;
     <h3>Scale benchmark (the open front)</h3>
     <p>10.7M-param char-GPT on text8 (d384 &middot; 6 layers &middot; ctx 128,
     stochastic batches) &mdash; 100&times; beyond the meta-training distribution.
-    First measurement (v7): the learned rule <b>regresses</b> where tuned Muon
-    descends. v9 trains against the diagnosed gaps (per-step batch resampling,
-    larger layer geometry). Refreshed here when v9&rsquo;s eval lands.</p>
+    Zero-shot initially regressed; the &lambda;-diagnostic showed the <b>direction
+    survives scale</b> and only step calibration fails, by exactly the &mu;P factor
+    &radic;(48/384). v10 bakes that gauge into the update (learned step = deviation
+    from a scale-correct baseline) and trains d&le;256 transformers. Latest 100-step
+    reading at scale: learned &lambda;=0.25 reaches 2.90 vs tuned Muon 2.43.
+    Refreshed when v10&rsquo;s eval lands.</p>
   </div>
   <div class="panel">
     <h3>Milestones</h3>
-    <ol class="miles"><li><span class="v">v2</span>MNIST-only distro; matches tuned Muon on 100-step MNIST probe</li><li><span class="v">v4</span>task zoo; first zero-shot wins over ALL tuned baselines (pendigits@20)</li><li><span class="v">v5</span>time inputs + cross-layer + capacity; calibration fixed (lambda*=1)</li><li><span class="v">v7</span>noise + width variation; beats Muon on MNIST h16@20; wins nanoGPT@100</li><li><span class="v">v8</span>width support to 96: fashion-h64 probe 46-68% -&gt; 93%</li><li><span class="v">v9</span>training: resampled episodes (real SGD), d&lt;=128 nanoGPTs, OpenML-54</li></ol>
+    <ol class="miles"><li><span class="v">v2</span>MNIST-only distro; matches tuned Muon on 100-step MNIST probe</li><li><span class="v">v4</span>task zoo; first zero-shot wins over ALL tuned baselines (pendigits@20)</li><li><span class="v">v5</span>time inputs + cross-layer + capacity; calibration fixed (lambda*=1)</li><li><span class="v">v7</span>noise + width variation; beats Muon on MNIST h16@20; wins nanoGPT@100</li><li><span class="v">v8</span>width support to 96: fashion-h64 probe 46-68% -&gt; 93%</li><li><span class="v">v9</span>resampled episodes (real SGD), d&lt;=128 nanoGPTs, OpenML-54 population</li><li><span class="v">v10</span>muP fan-in gauge (scale fix: lambda*~sqrt(48/384) diagnosed), d&lt;=256 - TRAINING</li></ol>
   </div>
   <footer>Meta-trained on an RTX&nbsp;3060 &middot; PES (evolution strategies), no
   backprop through unrolls &middot; held out everywhere: Fashion-MNIST, pendigits,

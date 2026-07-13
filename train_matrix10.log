@@ -165,3 +165,7 @@ pes  3750  seg-loss -0.6766  ema -8.1643
 pes  3775  seg-loss 0.2152  ema -5.6952
 pes  3800  seg-loss -15.7178  ema -7.1837
 pes  3825  seg-loss -18.7985  ema -11.9460
+pes  3850  seg-loss -10.6124  ema -9.0619
+pes  3875  seg-loss -0.0836  ema -11.4066
+pes  3900  seg-loss -19.3890  ema -13.5589
+pes  3925  seg-loss -1.1252  ema -14.6964
