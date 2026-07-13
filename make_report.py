@@ -250,11 +250,12 @@ footer {{ margin-top:44px; color:var(--mut); font-size:12px;
     with open(out, "w") as fh:
         fh.write(page)
     print(f"wrote {out} from {eval_path} (rev {rev})")
+    import shutil
     served = os.path.expanduser("~/vectornet_report/index.html")
     if os.path.isdir(os.path.dirname(served)):  # tailnet-served copy, if set up
-        import shutil
         shutil.copy(out, served)
         print(f"refreshed {served}")
+    shutil.copy(out, "scoreboard.html")  # artifact-published copy (claude.ai)
 
 
 if __name__ == "__main__":

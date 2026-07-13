@@ -1,0 +1,172 @@
+
+=== budget: 20 steps ===
+  mnist h16 (train domain)
+    learned zero-shot                loss   0.0083  acc 1.000
+    learned tuned-lambda(1.00)       loss   0.0083  acc 1.000
+    muon (lr=0.1)                    loss   0.0016  acc 1.000
+    adam (lr=0.03)                   loss   0.0289  acc 0.996
+    sgd (lr=0.3)                     loss   0.5465  acc 0.893
+    prodigy (lr=1.0)                 loss   0.0814  acc 0.978
+  mnist h64 (unseen width)
+    learned zero-shot                loss   0.1272  acc 0.975
+    learned tuned-lambda(0.50)       loss   0.0336  acc 0.998
+    muon (lr=0.1)                    loss   0.0000  acc 1.000
+    adam (lr=0.01)                   loss   0.0025  acc 1.000
+    sgd (lr=0.3)                     loss   0.3555  acc 0.970
+    prodigy (lr=1.0)                 loss   0.0922  acc 0.973
+  mnist (32,32) (unseen shape)
+    learned zero-shot                loss   0.0311  acc 0.992
+    learned tuned-lambda(1.00)       loss   0.0311  acc 0.992
+    muon (lr=0.03)                   loss   0.0034  acc 1.000
+    adam (lr=0.03)                   loss   0.0026  acc 1.000
+    sgd (lr=0.3)                     loss   0.7718  acc 0.762
+    prodigy (lr=1.0)                 loss   0.4134  acc 0.868
+  fashion h16 (HELD-OUT dataset)
+    learned zero-shot                loss   0.7288  acc 0.775
+    learned tuned-lambda(0.50)       loss   0.5597  acc 0.812
+    muon (lr=0.1)                    loss   0.1086  acc 0.973
+    adam (lr=0.01)                   loss   0.7036  acc 0.764
+    sgd (lr=0.1)                     loss   1.2855  acc 0.627
+    prodigy (lr=1.0)                 loss   0.6325  acc 0.765
+  fashion h64 (held-out data+width)
+    learned zero-shot                loss   2.1642  acc 0.748
+    learned tuned-lambda(0.50)       loss   0.4142  acc 0.906
+    muon (lr=0.03)                   loss   0.0161  acc 0.999
+    adam (lr=0.01)                   loss   0.2831  acc 0.914
+    sgd (lr=0.3)                     loss   0.8727  acc 0.706
+    prodigy (lr=1.0)                 loss   0.3413  acc 0.882
+  fashion h128 (held-out width extrapolation)
+    learned zero-shot                loss   0.9110  acc 0.758
+    learned tuned-lambda(0.25)       loss   0.6199  acc 0.863
+    muon (lr=0.1)                    loss   0.0019  acc 1.000
+    adam (lr=0.003)                  loss   0.2138  acc 0.961
+    sgd (lr=0.3)                     loss   0.7710  acc 0.742
+    prodigy (lr=1.0)                 loss   0.4464  acc 0.833
+  fashion h16 B=16 (noise transfer)
+    learned zero-shot                loss   0.0358  acc 0.992
+    learned tuned-lambda(0.50)       loss   0.0118  acc 1.000
+    muon (lr=0.1)                    loss   0.0033  acc 1.000
+    adam (lr=0.01)                   loss   0.1122  acc 0.992
+    sgd (lr=0.1)                     loss   0.5263  acc 0.898
+    prodigy (lr=1.0)                 loss   0.0758  acc 0.984
+  fashion h16 B=512 (unseen batch size)
+    learned zero-shot                loss   0.6703  acc 0.758
+    learned tuned-lambda(1.00)       loss   0.6703  acc 0.758
+    muon (lr=0.1)                    loss   0.3398  acc 0.885
+    adam (lr=0.01)                   loss   0.8227  acc 0.697
+    sgd (lr=0.3)                     loss   1.2784  acc 0.527
+    prodigy (lr=1.0)                 loss   0.7885  acc 0.720
+  covertype h16 (train domain)
+    learned zero-shot                loss   0.1697  acc 0.948
+    learned tuned-lambda(1.00)       loss   0.1697  acc 0.948
+    muon (lr=0.1)                    loss   0.4032  acc 0.856
+    adam (lr=0.1)                    loss   0.1305  acc 0.960
+    sgd (lr=1.0)                     loss   0.6234  acc 0.749
+    prodigy (lr=1.0)                 loss   0.4473  acc 0.817
+  pendigits h16 (HELD-OUT dataset)
+    learned zero-shot                loss   0.0023  acc 1.000
+    learned tuned-lambda(2.00)       loss   0.0011  acc 1.000
+    muon (lr=0.1)                    loss   0.3791  acc 0.897
+    adam (lr=0.1)                    loss   0.0089  acc 0.999
+    sgd (lr=3.0)                     loss   0.0926  acc 0.980
+    prodigy (lr=1.0)                 loss   0.0967  acc 0.969
+  pendigits h64 (held-out data+width)
+    learned zero-shot                loss   0.0022  acc 0.999
+    learned tuned-lambda(2.00)       loss   0.0001  acc 1.000
+    muon (lr=0.1)                    loss   0.0184  acc 0.994
+    adam (lr=0.1)                    loss   0.0005  acc 1.000
+    sgd (lr=3.0)                     loss   0.0262  acc 0.999
+    prodigy (lr=1.0)                 loss   0.0891  acc 0.980
+  nanogpt d32 L2 on text8 (HELD-OUT corpus; d48 unseen at train? see cfg)
+    learned zero-shot                loss   1.5378  acc 0.545
+    learned tuned-lambda(0.50)       loss   1.5155  acc 0.564
+    muon (lr=0.1)                    loss   0.7963  acc 0.754
+    adam (lr=0.01)                   loss   2.0627  acc 0.406
+    sgd (lr=0.3)                     loss   2.5815  acc 0.230
+    prodigy (lr=1.0)                 loss   2.2082  acc 0.353
+
+=== budget: 100 steps ===
+  mnist h16 (train domain)
+    learned zero-shot                loss   0.0000  acc 1.000
+    learned tuned-lambda(4.00)       loss   0.0000  acc 1.000
+    muon (lr=0.03)                   loss   0.0000  acc 1.000
+    adam (lr=0.03)                   loss   0.0002  acc 1.000
+    sgd (lr=0.3)                     loss   0.0309  acc 1.000
+    prodigy (lr=1.0)                 loss   0.0000  acc 1.000
+  mnist h64 (unseen width)
+    learned zero-shot                loss   0.0000  acc 1.000
+    learned tuned-lambda(2.00)       loss   0.0000  acc 1.000
+    muon (lr=0.03)                   loss   0.0000  acc 1.000
+    adam (lr=0.03)                   loss   0.0000  acc 1.000
+    sgd (lr=1.0)                     loss   0.0056  acc 1.000
+    prodigy (lr=1.0)                 loss   0.0001  acc 1.000
+  mnist (32,32) (unseen shape)
+    learned zero-shot                loss   0.0000  acc 1.000
+    learned tuned-lambda(0.50)       loss   0.0000  acc 1.000
+    muon (lr=0.03)                   loss   0.0000  acc 1.000
+    adam (lr=0.03)                   loss   0.0000  acc 1.000
+    sgd (lr=0.3)                     loss   0.0130  acc 1.000
+    prodigy (lr=1.0)                 loss   0.0000  acc 1.000
+  fashion h16 (HELD-OUT dataset)
+    learned zero-shot                loss   0.0073  acc 0.999
+    learned tuned-lambda(1.00)       loss   0.0073  acc 0.999
+    muon (lr=0.03)                   loss   0.0000  acc 1.000
+    adam (lr=0.01)                   loss   0.0344  acc 0.994
+    sgd (lr=0.1)                     loss   0.4228  acc 0.893
+    prodigy (lr=1.0)                 loss   0.0002  acc 1.000
+  fashion h64 (held-out data+width)
+    learned zero-shot                loss   0.2344  acc 0.936
+    learned tuned-lambda(0.50)       loss   0.1374  acc 0.959
+    muon (lr=0.01)                   loss   0.0000  acc 1.000
+    adam (lr=0.01)                   loss   0.0060  acc 1.000
+    sgd (lr=0.3)                     loss   0.2289  acc 0.930
+    prodigy (lr=1.0)                 loss   0.0020  acc 1.000
+  fashion h128 (held-out width extrapolation)
+    learned zero-shot                loss   0.2641  acc 0.927
+    learned tuned-lambda(1.00)       loss   0.2641  acc 0.927
+    muon (lr=0.01)                   loss   0.0000  acc 1.000
+    adam (lr=0.03)                   loss   0.0030  acc 1.000
+    sgd (lr=0.3)                     loss   0.1460  acc 0.970
+    prodigy (lr=1.0)                 loss   0.0052  acc 1.000
+  fashion h16 B=16 (noise transfer)
+    learned zero-shot                loss   0.0000  acc 1.000
+    learned tuned-lambda(0.25)       loss   0.0000  acc 1.000
+    muon (lr=0.03)                   loss   0.0000  acc 1.000
+    adam (lr=0.01)                   loss   0.0013  acc 1.000
+    sgd (lr=0.1)                     loss   0.0381  acc 1.000
+    prodigy (lr=1.0)                 loss   0.0000  acc 1.000
+  fashion h16 B=512 (unseen batch size)
+    learned zero-shot                loss   0.1362  acc 0.956
+    learned tuned-lambda(0.50)       loss   0.1135  acc 0.970
+    muon (lr=0.03)                   loss   0.0133  acc 0.995
+    adam (lr=0.01)                   loss   0.1146  acc 0.975
+    sgd (lr=0.3)                     loss   0.5932  acc 0.784
+    prodigy (lr=1.0)                 loss   0.0235  acc 0.997
+  covertype h16 (train domain)
+    learned zero-shot                loss   0.0002  acc 1.000
+    learned tuned-lambda(2.00)       loss   0.0000  acc 1.000
+    muon (lr=0.1)                    loss   0.0001  acc 1.000
+    adam (lr=0.1)                    loss   0.0018  acc 1.000
+    sgd (lr=3.0)                     loss   0.0443  acc 0.993
+    prodigy (lr=1.0)                 loss   0.0058  acc 0.998
+  pendigits h16 (HELD-OUT dataset)
+    learned zero-shot                loss   0.0000  acc 1.000
+    learned tuned-lambda(0.50)       loss   0.0000  acc 1.000
+    muon (lr=0.1)                    loss   0.0000  acc 1.000
+    adam (lr=0.1)                    loss   0.0001  acc 1.000
+    sgd (lr=3.0)                     loss   0.0042  acc 1.000
+    prodigy (lr=1.0)                 loss   0.0000  acc 1.000
+  pendigits h64 (held-out data+width)
+    learned zero-shot                loss   0.0000  acc 1.000
+    learned tuned-lambda(1.00)       loss   0.0000  acc 1.000
+    muon (lr=0.1)                    loss   0.0000  acc 1.000
+    adam (lr=0.1)                    loss   0.0000  acc 1.000
+    sgd (lr=3.0)                     loss   0.0030  acc 1.000
+    prodigy (lr=1.0)                 loss   0.0000  acc 1.000
+  nanogpt d32 L2 on text8 (HELD-OUT corpus; d48 unseen at train? see cfg)
+    learned zero-shot                loss   0.0368  acc 0.990
+    learned tuned-lambda(0.25)       loss   0.0155  acc 0.994
+    muon (lr=0.03)                   loss   0.0514  acc 0.987
+    adam (lr=0.01)                   loss   0.0174  acc 0.994
+    sgd (lr=0.3)                     loss   1.3780  acc 0.586
+    prodigy (lr=1.0)                 loss   0.0356  acc 0.994

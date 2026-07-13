@@ -169,3 +169,31 @@ pes  3850  seg-loss -10.6124  ema -9.0619
 pes  3875  seg-loss -0.0836  ema -11.4066
 pes  3900  seg-loss -19.3890  ema -13.5589
 pes  3925  seg-loss -1.1252  ema -14.6964
+pes  3950  seg-loss -4.9547  ema -9.7002
+pes  3975  seg-loss -15.5996  ema -7.7015
+pes  4000  seg-loss -0.1843  ema -5.1099
+  eval[h16] learned: loss 0.0262 acc 0.998  vs  muon(lr=0.1): loss 0.0009 acc 1.000
+  eval[h64-wider] learned: loss 0.0554 acc 0.988  vs  muon(lr=0.1): loss 0.0002 acc 1.000
+  eval[h16-long] learned: loss 0.0000 acc 1.000  vs  muon(lr=0.1): loss 0.0000 acc 1.000
+  eval[fashion-h16 HELD-OUT] learned: loss 0.1103 acc 0.974  vs  muon(lr=0.03): loss 0.0000 acc 1.000
+  eval[fashion-h64 HELD-OUT] learned: loss 0.9951 acc 0.763  vs  muon(lr=0.03): loss 0.0000 acc 1.000
+pes  4025  seg-loss -0.4217  ema -4.4335
+pes  4050  seg-loss -1.1937  ema -4.2328
+pes  4075  seg-loss -20.6927  ema -5.9053
+pes  4100  seg-loss -20.7233  ema -9.2953
+pes  4125  seg-loss -0.1310  ema -10.0777
+pes  4150  seg-loss -20.6664  ema -8.6081
+pes  4175  seg-loss -20.7198  ema -12.1117
+pes  4200  seg-loss -7.8495  ema -13.4322
+pes  4225  seg-loss -2.6044  ema -10.8064
+pes  4250  seg-loss -20.7233  ema -10.3486
+pes  4275  seg-loss -0.2819  ema -10.3350
+pes  4300  seg-loss -1.9781  ema -6.6181
+pes  4325  seg-loss -18.5518  ema -9.1457
+pes  4350  seg-loss -0.3530  ema -7.5471
+pes  4375  seg-loss -2.3626  ema -5.3223
+pes  4400  seg-loss -6.6054  ema -5.2681
+pes  4425  seg-loss 0.4894  ema -3.4049
+pes  4450  seg-loss -20.7163  ema -9.1416
+pes  4475  seg-loss -0.7906  ema -12.0323
+pes  4500  seg-loss -20.4373  ema -13.7357
