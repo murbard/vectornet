@@ -439,6 +439,21 @@ overstep is width-independent, plausibly trainable). Gap to tuned muon now 0.11 
 with one scalar, 0.47 zero-shot, at 30% of v10's training. Watch: learned rule is ~3-5x
 muon ms/step on CPU (kernel-launch-bound; GPU profile pending).
 
+## Iteration 30 — 2026-07-14 (v10 final: 100-step parity was real, 2000-step reveals
+## the horizon wall)
+
+eval_scale10 (10.7M GPT, 2000 steps, pilots): learned zero-shot 2.42, lam=0.5 2.36 —
+but BOTH PLATEAU at ~step 1000, while tuned muon (1.31) and adamw+cosine (1.30) keep
+descending all the way. Early-phase parity (through ~200 steps) is real; beyond ~2.5x
+the max meta-training episode (400 steps) the rule stalls — state dynamics converge to
+a non-descending fixed point / step size collapses. THE binding constraint is now
+HORIZON, not width (gauge solved width), not noise (resampling solved that).
+GPU wall-clock: 215 ms/step vs muon 108 / adamw 79 (2x muon; kernel-launch-bound).
+Fairness table v10 (eval_matrix10.txt): small-scale grid ~v7-level (2W/1T/9L @20,
+regressions on image short-budget vs v7's 3W; pendigits/covertype/nanogpt wins hold).
+**v11 launched: episode lengths {400, 1000, 2000}** (PES makes long episodes cheap —
+same per-meta-step cost, episodes just persist), warm-start v10, 40k steps.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)

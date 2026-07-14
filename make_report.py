@@ -29,7 +29,8 @@ MILESTONES = [
     ("v7", "noise + width variation; beats Muon on MNIST h16@20; wins nanoGPT@100"),
     ("v8", "width support to 96: fashion-h64 probe 46-68% -> 93%"),
     ("v9", "resampled episodes (real SGD), d<=128 nanoGPTs, OpenML-54 population"),
-    ("v10", "muP fan-in gauge (scale fix: lambda*~sqrt(48/384) diagnosed), d<=256 - TRAINING"),
+    ("v10", "muP fan-in gauge: zero-shot descends at 10.7M, early parity with Muon"),
+    ("v11", "horizon fix: episodes to 2000 steps (v10 plateaued past 1000) - TRAINING"),
 ]
 
 
@@ -230,13 +231,13 @@ footer {{ margin-top:44px; color:var(--mut); font-size:12px;
   <div class="panel">
     <h3>Scale benchmark (the open front)</h3>
     <p>10.7M-param char-GPT on text8 (d384 &middot; 6 layers &middot; ctx 128,
-    stochastic batches) &mdash; 100&times; beyond the meta-training distribution.
-    Zero-shot initially regressed; the &lambda;-diagnostic showed the <b>direction
-    survives scale</b> and only step calibration fails, by exactly the &mu;P factor
-    &radic;(48/384). v10 bakes that gauge into the update (learned step = deviation
-    from a scale-correct baseline) and trains d&le;256 transformers. Latest 100-step
-    reading at scale: learned &lambda;=0.25 reaches 2.90 vs tuned Muon 2.43.
-    Refreshed when v10&rsquo;s eval lands.</p>
+    stochastic batches), 2000 training steps &mdash; 100&times; beyond meta-training.
+    v10 (&mu;P fan-in gauge): <b>zero-shot now descends and holds early-phase parity</b>
+    (through ~200 steps), reaching 2.42 (&lambda;=0.5: 2.36) &mdash; but plateaus near
+    step 1000, ~2.5&times; its longest meta-training episode, while tuned Muon (1.31)
+    and AdamW+cosine (1.30) keep descending. Width and noise are solved; <b>horizon is
+    the binding constraint</b>. v11 trains episodes to 2000 steps. Wall-clock:
+    215&nbsp;ms/step vs Muon 108 on the RTX&nbsp;3060.</p>
   </div>
   <div class="panel">
     <h3>Milestones</h3>

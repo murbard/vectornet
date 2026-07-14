@@ -1,0 +1,11 @@
+warm-started from learned_matrix10.pt
+matrix optimizer: 28543 meta-params
+  dataset qmnist unavailable: FileNotFoundError: [Errno 2] No such file or directory: '/home/arthurb/.cache/qmnist/qmnist-train-images-idx3-ubyte.gz'
+dataset registry: ['cifar10', 'cifar100', 'covtype', 'kmnist', 'letter', 'magic', 'miniboone', 'mnist', 'optdigits', 'poker', 'satimage', 'spambase', 'svhn'] (13 available)
+openml: +54 train datasets (13 held out by dataset)
+pes     0  seg-loss -1.2019  ema -1.2019
+  eval[h16] learned: loss 0.0035 acc 1.000  vs  muon(lr=0.1): loss 0.0007 acc 1.000
+  eval[h64-wider] learned: loss 0.0448 acc 0.987  vs  muon(lr=0.03): loss 0.0008 acc 1.000
+  eval[h16-long] learned: loss 0.0000 acc 1.000  vs  muon(lr=0.03): loss 0.0000 acc 1.000
+  eval[fashion-h16 HELD-OUT] learned: loss 0.0055 acc 0.998  vs  muon(lr=0.03): loss 0.0000 acc 1.000
+  eval[fashion-h64 HELD-OUT] learned: loss 0.1423 acc 0.957  vs  muon(lr=0.03): loss 0.0000 acc 1.000
