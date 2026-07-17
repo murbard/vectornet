@@ -25,12 +25,12 @@ from vectornet_matrix import LearnedMatrixOptimizer
 from vectornet_torch import muon_step
 
 
-def make_problem(device, steps_seed=0, batch=32):
+def make_problem(device, steps_seed=0, batch=24, eval_batch=64):
     ids, vocab = load_text("text8", device)
     gen = torch.Generator(device=device).manual_seed(steps_seed)
     prob = TransformerLMProblem(ids, vocab, 1, batch, device, gen, d_model=384,
                                 n_layers=6, n_heads=6, ctx=128, resample=True)
-    eval_prob = TransformerLMProblem(ids, vocab, 1, 128, device,
+    eval_prob = TransformerLMProblem(ids, vocab, 1, eval_batch, device,
                                      torch.Generator(device=device).manual_seed(999),
                                      d_model=384, n_layers=6, n_heads=6, ctx=128)
     return prob, eval_prob
@@ -116,6 +116,8 @@ def main():
             print(f"  pilot {tag}={v}: {final:.4f}", flush=True)
             if best is None or final < best[1]:
                 best = (v, final)
+            if device.type == "cuda":
+                torch.cuda.empty_cache()  # each pilot allocates fresh optimizer state
         return best[0]
 
     lam = pilot(lambda v, n: run_learned(model, prob, eval_prob, x0, n, v),

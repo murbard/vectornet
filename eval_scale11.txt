@@ -1,0 +1,14 @@
+optimizee: 10.7M params (meta-training max was ~0.2M)
+  pilot lambda=0.5: 7.7454
+  pilot lambda=1.0: 12.4316
+  pilot lambda=2.0: 6.6086
+  pilot muon-lr=0.003: 2.0035
+  pilot muon-lr=0.01: 2.2349
+  pilot muon-lr=0.03: 2.4727
+  pilot adamw-lr=0.001: 2.3721
+  pilot adamw-lr=0.003: 2.4089
+  pilot adamw-lr=0.01: 2.4774
+
+full runs (2000 steps):
+learned zero-shot        final 2.7222  (205 ms/step)  [0:4.124  200:3.704  400:4.665  600:9.280  800:5.561  1000:5.357  1200:10.135  1400:3.463  1600:6.973  1800:3.337  1999:2.722]
+learned lambda=2.0       final 5.7770  (203 ms/step)  [0:4.591  200:11.162  400:9.714  600:9.959  800:11.963  1000:19.755  1200:19.299  1400:7.223  1600:15.433  1800:9.388  1999:5.777]

@@ -454,6 +454,26 @@ regressions on image short-budget vs v7's 3W; pendigits/covertype/nanogpt wins h
 **v11 launched: episode lengths {400, 1000, 2000}** (PES makes long episodes cheap —
 same per-meta-step cost, episodes just persist), warm-start v10, 40k steps.
 
+## Iteration 31 — 2026-07-17 (v11 NEGATIVE: longer episodes destabilize, don't persist)
+
+v11 (episodes to 2000 steps, 40k, warm-start v10) scale benchmark (eval_scale11):
+  learned zero-shot: 4.1->9.3->5.4->10.1->3.3->2.72  CHAOTIC, final 2.72 (> v10's 2.42)
+  learned lam=2.0:   4.6->19.8->5.8  worse
+  (v11 small-scale probes were also noisy/elevated all run -- never actually stable)
+HYPOTHESIS INVERTED: v10's plateau is NOT horizon-undertraining. Longer episodes made
+the rule UNSTABLE, not persistent. Two reasons: (1) long+noisy PES rollouts = high
+meta-gradient variance; (2) more likely the plateau is STATE COLLAPSE -- the recurrent
+hidden matrices converge to a fixed point ~step 1000, so the update direction stops
+evolving; adding long unstable regimes can't fix an attractor.
+NEXT (proposed, not auto-launched -- genuine fork): diagnose before spending GPU.
+  a. Instrument v10 at scale, log ||H_t - H_{t-1}|| and log_step vs t: does state
+     converge to a fixed point ~1000? (cheap, decisive -- architecture vs training)
+  b. If state-collapse: architectural fix (state that can't saturate: leaky reset,
+     an explicit slow/fast timescale pair, or feed a coarse iterate-count bucket).
+  c. If not: accept v10 as best scale result (honest: early-phase parity + plateau).
+Reverted episode distribution to v10's stable set + one modest-long tier.
+STANDING BEST at scale remains v10 (2.42 zero-shot, stable, early-parity to ~200 steps).
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
