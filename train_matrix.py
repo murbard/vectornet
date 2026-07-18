@@ -130,6 +130,9 @@ def main():
                     help="adjacent-layer gradient-covariance couplings (Shampoo/K-FAC span)")
     ap.add_argument("--fanin-gauge", action="store_true",
                     help="scale updates by sqrt(48/fan_in): muP-style width extrapolation")
+    ap.add_argument("--momentum", action="store_true",
+                    help="learned-decay output momentum buffer (damps the under-damped "
+                         "oscillation that plateaus the rule at scale)")
     ap.add_argument("--openml", action="store_true",
                     help="add the OpenML-CC18 train split (56 datasets) to the zoo")
     ap.add_argument("--init-from", default=None,
@@ -162,10 +165,18 @@ def main():
                     "n_scal_hidden": 96} if args.big else {})
     model = LearnedMatrixOptimizer(time_inputs=args.time_inputs,
                                    cross_layer=args.cross_layer,
-                                   fanin_gauge=args.fanin_gauge, **size_kwargs).to(device)
+                                   fanin_gauge=args.fanin_gauge,
+                                   momentum=args.momentum, **size_kwargs).to(device)
     if args.init_from:
-        model.load_state_dict(torch.load(args.init_from, map_location=device)["state_dict"])
-        print(f"warm-started from {args.init_from}", flush=True)
+        src = torch.load(args.init_from, map_location=device)["state_dict"]
+        own = model.state_dict()
+        loaded = {k: v for k, v in src.items()
+                  if k in own and v.shape == own[k].shape}  # skip reshaped layers
+        own.update(loaded)
+        model.load_state_dict(own)
+        skipped = [k for k in own if k not in loaded]
+        print(f"warm-started from {args.init_from} "
+              f"({len(loaded)}/{len(own)} tensors; skipped {skipped})", flush=True)
     print(f"matrix optimizer: {sum(p.numel() for p in model.parameters())} meta-params")
     meta_opt = torch.optim.Adam(model.parameters(), lr=args.meta_lr)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(meta_opt, T_max=args.meta_steps)

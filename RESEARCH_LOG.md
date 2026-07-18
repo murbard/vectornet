@@ -474,6 +474,30 @@ NEXT (proposed, not auto-launched -- genuine fork): diagnose before spending GPU
 Reverted episode distribution to v10's stable set + one modest-long tier.
 STANDING BEST at scale remains v10 (2.42 zero-shot, stable, early-parity to ~200 steps).
 
+## Iteration 32 — 2026-07-18 (AUTONOMOUS PROGRAM: beat Muon per-step. Diagnosis + momentum)
+
+Mandate: iterate until we beat Muon per-step across sizes/horizons. Method: diagnose ->
+fix -> verify at scale -> repeat.
+
+DIAGNOSIS (diagnose_plateau.py on v10 @10.7M, 1450 steps) -- hypothesis was state
+collapse, REFUTED, real cause found:
+  loss: plateaus hard at ~2.40 from step ~900 (bounces 2.38-2.41)
+  dH/H (hidden state change): stays HIGH ~1.4-1.5 -- state is churning, NOT frozen
+  cos(update_t, update_{t-1}): persistently NEGATIVE (-0.01 to -0.32) all run
+  => UNDER-DAMPED OSCILLATION: the rule zig-zags across the loss valley, updates
+     reverse each step, net progress ~0. NOT a frozen fixed point.
+  Root architectural cause: the k_hidden hidden matrices are rms-normalized on write
+  (direction-only), so the rule has NO magnitude accumulator -- structurally cannot
+  damp. Muon descends smoothly precisely because its beta=0.95 momentum buffer averages
+  out this zig-zag.
+
+FIX (v12): --momentum flag. Unit emits a per-layer decay gamma=sigmoid(.); optimizer
+  keeps an explicit output momentum buffer M=gamma*M+(1-gamma)*raw and APPLIES M (bundled
+  as an extra channel in H so the (H,s) state signature is unchanged -> zero caller
+  changes). gamma cold-started to sigmoid(2)=0.88 (Muon-like). Warm-started 15/17 tensors
+  from v10 (net_b final layer reinit for the extra gamma output). Training 40k steps.
+  Prediction: cos_prev goes positive, loss descends past the 2.40 plateau.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)

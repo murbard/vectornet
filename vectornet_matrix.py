@@ -52,7 +52,7 @@ class MatrixUnit(nn.Module):
 
     def __init__(self, k_hidden=4, k_mid=8, n_triples=4, n_scal_local=16,
                  n_scal_global=16, n_dot=16, n_scal_hidden=64, time_inputs=False,
-                 cross_layer=False, fanin_gauge=False):
+                 cross_layer=False, fanin_gauge=False, momentum=False):
         super().__init__()
         self.k_hidden, self.k_mid, self.n_triples = k_hidden, k_mid, n_triples
         self.n_scal_local, self.n_scal_global = n_scal_local, n_scal_global
@@ -71,6 +71,12 @@ class MatrixUnit(nn.Module):
         # calibration extrapolates to unseen widths by construction (measured at
         # d=384: zero-shot needed exactly ~sqrt(48/384) correction).
         self.fanin_gauge = fanin_gauge
+        # momentum: emit a per-layer decay gamma in (0,1) so the optimizer can keep an
+        # explicit output momentum buffer M = gamma*M + (1-gamma)*delta and apply M.
+        # The rms-normalized hidden matrices are direction-only and cannot damp; the
+        # scale diagnostic showed the plateau is UNDER-DAMPED oscillation (cos of
+        # successive updates persistently NEGATIVE), which a learned momentum fixes.
+        self.momentum = momentum
 
         k_in = k_hidden + 1 + (2 if cross_layer else 0)
         k_pool = k_mid + n_triples               # mid stack after the quadratic stage
@@ -94,9 +100,13 @@ class MatrixUnit(nn.Module):
         # net B: features + post-triple invariants -> new local scalars + log step
         self.trace_w3 = nn.Parameter(torch.randn(k_pool, n_dot) / math.sqrt(k_pool))
         self.trace_w4 = nn.Parameter(torch.randn(k_pool, n_dot) / math.sqrt(k_pool))
-        self.net_b = ScalarMLP([n_feat + n_dot, n_scal_hidden, n_scal_local + 1])
+        # net_b outputs: new local scalars + log_step (+ gamma logit when momentum)
+        self.net_b = ScalarMLP([n_feat + n_dot, n_scal_hidden,
+                                n_scal_local + 1 + (1 if momentum else 0)])
         with torch.no_grad():  # cold-start the step size: exp(-3) ~ 0.05
-            self.net_b.layers[-1].bias[-1] = -3.0
+            self.net_b.layers[-1].bias[n_scal_local] = -3.0
+            if momentum:  # cold-start gamma ~ sigmoid(2) = 0.88 (Muon-like heavy damping)
+                self.net_b.layers[-1].bias[-1] = 2.0
 
         # output: delta + new hidden matrices, small init => near-stationary start
         self.out_comb = nn.Parameter(0.1 * torch.randn(k_pool, k_hidden + 1) / math.sqrt(k_pool))
@@ -110,6 +120,9 @@ class MatrixUnit(nn.Module):
 
     def forward(self, G, H, s_local, s_global, y, t=0, budget=None, cross=None):
         P, a, b = G.shape
+        if self.momentum:  # last H channel is the momentum buffer M, not a direction slot
+            M_prev = H[:, -1]
+            H = H[:, :-1]
         g_rms = (G.pow(2).mean(dim=(1, 2), keepdim=True) + 1e-24).sqrt()
         G_hat = G / g_rms
         parts = [H, G_hat.unsqueeze(1)]
@@ -144,16 +157,30 @@ class MatrixUnit(nn.Module):
         pool = torch.cat([mid, tri], dim=1)                         # (P, k_pool, a, b)
         s_out = self.net_b(torch.cat(
             [feats, self._traces(pool, pool, self.trace_w3, self.trace_w4)], dim=1))
-        s_local_new = torch.tanh(s_out[:, :-1])
-        log_step = s_out[:, -1:].clamp(-8.0, 2.0)
+        if self.momentum:
+            s_local_new = torch.tanh(s_out[:, :-2])
+            log_step = s_out[:, -2:-1].clamp(-8.0, 2.0)
+            gamma = torch.sigmoid(s_out[:, -1:])  # (P,1) learned momentum decay
+        else:
+            s_local_new = torch.tanh(s_out[:, :-1])
+            log_step = s_out[:, -1:].clamp(-8.0, 2.0)
+            gamma = None
 
         out = torch.einsum("pmab,mo->poab", pool, self.out_comb)
-        delta = out[:, 0] * log_step.exp().unsqueeze(-1)
+        raw = out[:, 0] * log_step.exp().unsqueeze(-1)
         # hidden matrices store directions only (rms-normalized on write): an unbounded
         # linear recurrence explodes over long horizons; magnitudes belong to the
         # tanh-bounded scalar memory
         H_new = out[:, 1:]
         H_new = H_new / (H_new.pow(2).mean(dim=(2, 3), keepdim=True) + 1e-24).sqrt()
+
+        if self.momentum:
+            # damp oscillation with a learned-decay output momentum buffer, then apply it
+            M_new = gamma.unsqueeze(-1) * M_prev + (1.0 - gamma.unsqueeze(-1)) * raw
+            delta = M_new
+            H_new = torch.cat([H_new, M_new.unsqueeze(1)], dim=1)
+        else:
+            delta = raw
         return delta, H_new, s_local_new, log_step
 
 
@@ -177,7 +204,12 @@ class LearnedMatrixOptimizer(nn.Module):
         self.pool_proj = nn.Linear(n_local, self.unit.n_scal_global)
 
     def init_state(self, P, shapes, device):
-        H = [torch.zeros(P, self.unit.k_hidden, aa, bb, device=device) for aa, bb in shapes]
+        # When momentum is on, each H tensor carries one EXTRA channel: the last slot is
+        # the magnitude-carrying momentum buffer M (not rms-normalized), the first
+        # k_hidden are the usual direction memories. Bundling M into H keeps the state
+        # signature (H, s) unchanged, so every caller threads momentum for free.
+        kh = self.unit.k_hidden + (1 if self.unit.momentum else 0)
+        H = [torch.zeros(P, kh, aa, bb, device=device) for aa, bb in shapes]
         s = [torch.zeros(P, self.unit.n_scal_local, device=device) for _ in shapes]
         return H, s
 
