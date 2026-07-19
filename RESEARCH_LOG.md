@@ -515,6 +515,22 @@ diagnose_plateau on learned_matrix12 @12k (lr_scale=1.0):
   normalization of the applied update (Newton-Schulz on M), i.e. Muon's OTHER half,
   which we already have in-span. Let v12 finish + scale-bench before deciding.
 
+## Iteration 32c — v12 FINAL verdict: momentum smooths but does NOT break the plateau
+
+v12 (momentum, 40k, warm v10) scale benchmark @10.7M, 2000 steps:
+  zero-shot lam=1:  2.70, STILL OSCILLATES (overshoot from momentum amplification)
+  lam=0.5:          2.50, now SMOOTH/stable (2.72->2.49->2.50) -- lambda<1 tamed overshoot
+  vs v10 zero-shot 2.42, muon 1.31.
+KEY REFRAME: removing the oscillation did NOT unlock descent. v12 plateaus at ~2.50,
+same wall as v10's 2.42, just smooth vs bouncy. => THE OSCILLATION WAS A SYMPTOM, NOT
+THE CAUSE. The rule stalls at ~2.4-2.5 regardless of damping. Something else stops
+descent past that point.
+That something is SPECTRAL: Muon keeps descending to 1.31 because orthogonalization
+equalizes the update spectrum, taking meaningful steps in LOW-CURVATURE directions that
+raw gradient/momentum ignore. Our un-orthogonalized update can't. => v13 (--spectral,
+already built+smoked) is now the strongly-motivated fix, not an overshoot patch. Launch
+on GPU free.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
