@@ -498,6 +498,23 @@ FIX (v12): --momentum flag. Unit emits a per-layer decay gamma=sigmoid(.); optim
   from v10 (net_b final layer reinit for the extra gamma output). Training 40k steps.
   Prediction: cos_prev goes positive, loss descends past the 2.40 plateau.
 
+## Iteration 32b — v12 mid-run diagnostic (step 12k): momentum works, reveals overshoot
+
+diagnose_plateau on learned_matrix12 @12k (lr_scale=1.0):
+  cos(update_t,update_{t-1}): now POSITIVE 0.5-0.85 (was NEGATIVE in v10) -- ZIG-ZAG
+  DAMPED, mechanism confirmed.
+  BUT loss bounces in a HIGHER band 2.7-3.2 (v10 plateaued at 2.40), updrms up 5-8x
+  (0.005 vs v10 0.0008) = the 1/(1-gamma)~8x momentum amplification. The base step size
+  hasn't shrunk to compensate (step-size head was reinitialized; only 12k steps trained).
+  Interpretation: momentum fixed micro-zigzag but introduced macro-overshoot because
+  step-size and gamma aren't co-calibrated yet. Likely resolves with full training +
+  the scale benchmark's lambda pilot (lambda<1 counters overshoot).
+  DEEPER INSIGHT: Muon avoids this entirely by ORTHOGONALIZING momentum (bounds every
+  singular value ~1) so magnitude is controlled regardless of momentum. Our M accumulates
+  raw deltas with arbitrary spectrum. If v12-final still overshoots -> v13 = spectral
+  normalization of the applied update (Newton-Schulz on M), i.e. Muon's OTHER half,
+  which we already have in-span. Let v12 finish + scale-bench before deciding.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
