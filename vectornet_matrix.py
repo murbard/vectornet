@@ -33,7 +33,7 @@ import math
 import torch
 import torch.nn as nn
 
-from vectornet_torch import ScalarMLP, signed_log
+from vectornet_torch import ScalarMLP, newton_schulz, signed_log
 
 
 def triple(X, Y, Z):
@@ -52,7 +52,7 @@ class MatrixUnit(nn.Module):
 
     def __init__(self, k_hidden=4, k_mid=8, n_triples=4, n_scal_local=16,
                  n_scal_global=16, n_dot=16, n_scal_hidden=64, time_inputs=False,
-                 cross_layer=False, fanin_gauge=False, momentum=False):
+                 cross_layer=False, fanin_gauge=False, momentum=False, spectral=False):
         super().__init__()
         self.k_hidden, self.k_mid, self.n_triples = k_hidden, k_mid, n_triples
         self.n_scal_local, self.n_scal_global = n_scal_local, n_scal_global
@@ -77,6 +77,11 @@ class MatrixUnit(nn.Module):
         # scale diagnostic showed the plateau is UNDER-DAMPED oscillation (cos of
         # successive updates persistently NEGATIVE), which a learned momentum fixes.
         self.momentum = momentum
+        # spectral: orthogonalize the momentum buffer (Newton-Schulz) before applying,
+        # bounding update singular values ~1 like Muon -- controls magnitude regardless
+        # of momentum, curing the overshoot that momentum alone causes. Requires momentum.
+        self.spectral = spectral
+        assert not (spectral and not momentum), "spectral requires momentum"
 
         k_in = k_hidden + 1 + (2 if cross_layer else 0)
         k_pool = k_mid + n_triples               # mid stack after the quadratic stage
@@ -167,7 +172,8 @@ class MatrixUnit(nn.Module):
             gamma = None
 
         out = torch.einsum("pmab,mo->poab", pool, self.out_comb)
-        raw = out[:, 0] * log_step.exp().unsqueeze(-1)
+        raw_dir = out[:, 0]                                    # unscaled update direction
+        step = log_step.exp().unsqueeze(-1)
         # hidden matrices store directions only (rms-normalized on write): an unbounded
         # linear recurrence explodes over long horizons; magnitudes belong to the
         # tanh-bounded scalar memory
@@ -175,12 +181,22 @@ class MatrixUnit(nn.Module):
         H_new = H_new / (H_new.pow(2).mean(dim=(2, 3), keepdim=True) + 1e-24).sqrt()
 
         if self.momentum:
-            # damp oscillation with a learned-decay output momentum buffer, then apply it
-            M_new = gamma.unsqueeze(-1) * M_prev + (1.0 - gamma.unsqueeze(-1)) * raw
-            delta = M_new
+            g_ = gamma.unsqueeze(-1)
+            if self.spectral:
+                # Muon's exact structure: momentum buffer on the raw direction,
+                # orthogonalize (bound every singular value ~1 -> magnitude controlled
+                # regardless of momentum, curing the overshoot momentum alone causes),
+                # then scale by the learned step. Newton-Schulz is a polynomial in our
+                # triple product, so this stays in-span.
+                M_new = g_ * M_prev + (1.0 - g_) * raw_dir
+                delta = newton_schulz(M_new) * step
+            else:
+                # momentum on the already-scaled raw delta, applied directly
+                M_new = g_ * M_prev + (1.0 - g_) * (raw_dir * step)
+                delta = M_new
             H_new = torch.cat([H_new, M_new.unsqueeze(1)], dim=1)
         else:
-            delta = raw
+            delta = raw_dir * step
         return delta, H_new, s_local_new, log_step
 
 
