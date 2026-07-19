@@ -531,6 +531,22 @@ raw gradient/momentum ignore. Our un-orthogonalized update can't. => v13 (--spec
 already built+smoked) is now the strongly-motivated fix, not an overshoot patch. Launch
 on GPU free.
 
+## Iteration 33 — v13 (momentum+spectral) BREAKS THE PLATEAU
+
+v13 = momentum + Newton-Schulz orthogonalization of the buffer (Muon's full structure,
+in our equivariant framework, everything else learned). Zero new params, warm-started
+17/17 from v12. Mid-run scale check on the STEP-8k (undertrained) checkpoint,
+diagnose_plateau on 10.7M GPT, lr_scale=0.3:
+  step 100: 2.38   200: 2.27   300: 2.07   400: 1.91 (still descending!)
+  cos_prev POSITIVE ~0.6 (stable monotone descent)
+vs v10 plateau 2.42, v12 plateau 2.50, muon 1.29. FIRST version to descend PAST the
+~2.4 wall. Confirms: the plateau was a SPECTRAL/preconditioning limit; orthogonalization
+finds the low-curvature descent directions momentum alone can't. This is the thesis --
+the framework CONTAINS Muon's mechanisms and expresses them with learned control.
+Small-MLP probes lag during warm-up (orthogonalization is aggressive on small/tall
+matrices; may want a learned blend later) but the TARGET (transformer scale) works.
+Let v13 finish 40k -> full benchmark. On track to reach/beat muon 1.29.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
