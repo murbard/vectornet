@@ -52,7 +52,8 @@ class MatrixUnit(nn.Module):
 
     def __init__(self, k_hidden=4, k_mid=8, n_triples=4, n_scal_local=16,
                  n_scal_global=16, n_dot=16, n_scal_hidden=64, time_inputs=False,
-                 cross_layer=False, fanin_gauge=False, momentum=False, spectral=False):
+                 cross_layer=False, fanin_gauge=False, momentum=False, spectral=False,
+                 blend=False):
         super().__init__()
         self.k_hidden, self.k_mid, self.n_triples = k_hidden, k_mid, n_triples
         self.n_scal_local, self.n_scal_global = n_scal_local, n_scal_global
@@ -81,7 +82,12 @@ class MatrixUnit(nn.Module):
         # bounding update singular values ~1 like Muon -- controls magnitude regardless
         # of momentum, curing the overshoot that momentum alone causes. Requires momentum.
         self.spectral = spectral
-        assert not (spectral and not momentum), "spectral requires momentum"
+        # blend: emit a per-layer mix rho=sigmoid(.) and apply
+        # (rho*orthogonalized + (1-rho)*raw)*step, so the rule ORTHOGONALIZES WHERE IT
+        # HELPS (large square transformer matrices) and leaves small/tall MLP layers raw.
+        # Generalizes v12 (rho=0) and v13 (rho=1); keyed on shape via log a, log b inputs.
+        self.blend = blend
+        assert not ((spectral or blend) and not momentum), "spectral/blend require momentum"
 
         k_in = k_hidden + 1 + (2 if cross_layer else 0)
         k_pool = k_mid + n_triples               # mid stack after the quadratic stage
@@ -105,13 +111,15 @@ class MatrixUnit(nn.Module):
         # net B: features + post-triple invariants -> new local scalars + log step
         self.trace_w3 = nn.Parameter(torch.randn(k_pool, n_dot) / math.sqrt(k_pool))
         self.trace_w4 = nn.Parameter(torch.randn(k_pool, n_dot) / math.sqrt(k_pool))
-        # net_b outputs: new local scalars + log_step (+ gamma logit when momentum)
-        self.net_b = ScalarMLP([n_feat + n_dot, n_scal_hidden,
-                                n_scal_local + 1 + (1 if momentum else 0)])
+        # net_b outputs: new local scalars + log_step (+ gamma when momentum)(+ rho when blend)
+        n_out = n_scal_local + 1 + (1 if momentum else 0) + (1 if blend else 0)
+        self.net_b = ScalarMLP([n_feat + n_dot, n_scal_hidden, n_out])
         with torch.no_grad():  # cold-start the step size: exp(-3) ~ 0.05
             self.net_b.layers[-1].bias[n_scal_local] = -3.0
             if momentum:  # cold-start gamma ~ sigmoid(2) = 0.88 (Muon-like heavy damping)
-                self.net_b.layers[-1].bias[-1] = 2.0
+                self.net_b.layers[-1].bias[n_scal_local + 1] = 2.0
+            if blend:  # cold-start rho ~ sigmoid(1) = 0.73 (lean toward orthogonalizing)
+                self.net_b.layers[-1].bias[-1] = 1.0
 
         # output: delta + new hidden matrices, small init => near-stationary start
         self.out_comb = nn.Parameter(0.1 * torch.randn(k_pool, k_hidden + 1) / math.sqrt(k_pool))
@@ -162,14 +170,11 @@ class MatrixUnit(nn.Module):
         pool = torch.cat([mid, tri], dim=1)                         # (P, k_pool, a, b)
         s_out = self.net_b(torch.cat(
             [feats, self._traces(pool, pool, self.trace_w3, self.trace_w4)], dim=1))
-        if self.momentum:
-            s_local_new = torch.tanh(s_out[:, :-2])
-            log_step = s_out[:, -2:-1].clamp(-8.0, 2.0)
-            gamma = torch.sigmoid(s_out[:, -1:])  # (P,1) learned momentum decay
-        else:
-            s_local_new = torch.tanh(s_out[:, :-1])
-            log_step = s_out[:, -1:].clamp(-8.0, 2.0)
-            gamma = None
+        nl = self.n_scal_local
+        s_local_new = torch.tanh(s_out[:, :nl])
+        log_step = s_out[:, nl:nl + 1].clamp(-8.0, 2.0)
+        gamma = torch.sigmoid(s_out[:, nl + 1:nl + 2]) if self.momentum else None
+        rho = torch.sigmoid(s_out[:, -1:]) if self.blend else None
 
         out = torch.einsum("pmab,mo->poab", pool, self.out_comb)
         raw_dir = out[:, 0]                                    # unscaled update direction
@@ -182,7 +187,16 @@ class MatrixUnit(nn.Module):
 
         if self.momentum:
             g_ = gamma.unsqueeze(-1)
-            if self.spectral:
+            if self.blend:
+                # learned mix of orthogonalized and raw-but-magnitude-controlled update:
+                # rho->1 orthogonalizes (good on big square matrices), rho->0 leaves the
+                # raw momentum direction (good on small/tall MLP layers).
+                M_new = g_ * M_prev + (1.0 - g_) * raw_dir
+                ortho = newton_schulz(M_new)
+                rawn = M_new / (M_new.pow(2).mean(dim=(1, 2), keepdim=True) + 1e-24).sqrt()
+                r_ = rho.unsqueeze(-1)
+                delta = (r_ * ortho + (1.0 - r_) * rawn) * step
+            elif self.spectral:
                 # Muon's exact structure: momentum buffer on the raw direction,
                 # orthogonalize (bound every singular value ~1 -> magnitude controlled
                 # regardless of momentum, curing the overshoot momentum alone causes),

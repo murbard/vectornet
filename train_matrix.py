@@ -136,6 +136,9 @@ def main():
     ap.add_argument("--spectral", action="store_true",
                     help="orthogonalize the momentum buffer before applying (Muon's "
                          "structure; requires --momentum). Controls update magnitude.")
+    ap.add_argument("--blend", action="store_true",
+                    help="learned per-layer mix of orthogonalized and raw update "
+                         "(requires --momentum): orthogonalize big matrices, not small)")
     ap.add_argument("--openml", action="store_true",
                     help="add the OpenML-CC18 train split (56 datasets) to the zoo")
     ap.add_argument("--init-from", default=None,
@@ -170,7 +173,7 @@ def main():
                                    cross_layer=args.cross_layer,
                                    fanin_gauge=args.fanin_gauge,
                                    momentum=args.momentum, spectral=args.spectral,
-                                   **size_kwargs).to(device)
+                                   blend=args.blend, **size_kwargs).to(device)
     if args.init_from:
         src = torch.load(args.init_from, map_location=device)["state_dict"]
         own = model.state_dict()
