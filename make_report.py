@@ -30,7 +30,10 @@ MILESTONES = [
     ("v8", "width support to 96: fashion-h64 probe 46-68% -> 93%"),
     ("v9", "resampled episodes (real SGD), d<=128 nanoGPTs, OpenML-54 population"),
     ("v10", "muP fan-in gauge: zero-shot descends at 10.7M, early parity with Muon"),
-    ("v11", "horizon fix: episodes to 2000 steps (v10 plateaued past 1000) - TRAINING"),
+    ("v11", "horizon episodes to 2000: NEGATIVE, destabilized (plateau was not horizon)"),
+    ("v12", "learned momentum: damps oscillation but plateau holds (it was a symptom)"),
+    ("v13", "+ spectral orthogonalization: BREAKS plateau, beats Muon per-step <300 steps"),
+    ("v14", "learned blend rho: orthogonalize big matrices only (recover small MLPs) - TRAINING"),
 ]
 
 
@@ -229,15 +232,20 @@ footer {{ margin-top:44px; color:var(--mut); font-size:12px;
   </div>
   {sections}
   <div class="panel">
-    <h3>Scale benchmark (the open front)</h3>
-    <p>10.7M-param char-GPT on text8 (d384 &middot; 6 layers &middot; ctx 128,
-    stochastic batches), 2000 training steps &mdash; 100&times; beyond meta-training.
-    v10 (&mu;P fan-in gauge): <b>zero-shot now descends and holds early-phase parity</b>
-    (through ~200 steps), reaching 2.42 (&lambda;=0.5: 2.36) &mdash; but plateaus near
-    step 1000, ~2.5&times; its longest meta-training episode, while tuned Muon (1.31)
-    and AdamW+cosine (1.30) keep descending. Width and noise are solved; <b>horizon is
-    the binding constraint</b>. v11 trains episodes to 2000 steps. Wall-clock:
-    215&nbsp;ms/step vs Muon 108 on the RTX&nbsp;3060.</p>
+    <h3>Scale benchmark &mdash; the chase for Muon (10.7M char-GPT on text8)</h3>
+    <p>d384 &middot; 6 layers &middot; ctx 128, stochastic batches, 2000 steps, 100&times;
+    beyond meta-training. The plateau that stalled v10/v12 at ~2.4&ndash;2.5 was diagnosed
+    (not state collapse but under-damped oscillation, then a spectral limit) and fixed:
+    <b>v13 adds momentum + Newton&ndash;Schulz orthogonalization &mdash; Muon's two
+    mechanisms, in our equivariant framework, everything else learned.</b></p>
+    <p>Result: <b>v13 closed 85% of the gap (1.13 &rarr; 0.16 nats).</b> &lambda;=0.5
+    reaches 1.45 and is still descending where Muon (1.29) has flattened. Head-to-head
+    v13 vs tuned Muon: <b>v13 is faster for the first ~300 steps</b> (step 200: 1.86 vs
+    1.98) &mdash; a per-step win at short horizons &mdash; then Muon's mid-phase pulls
+    ahead. v13 also beats tuned Muon at 20 steps on covertype and pendigits, and beats it
+    on nanoGPT@100. Open: mid/late-phase rate (finer &lambda;, longer horizon where v13
+    still descends), and small image-MLP@20 (v14 blend). Wall-clock ~2&times; Muon,
+    optimization pending.</p>
   </div>
   <div class="panel">
     <h3>Milestones</h3>
