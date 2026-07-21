@@ -564,6 +564,22 @@ v13 (momentum+spectral, 40k) @10.7M GPT, 2000 steps:
 NEXT: (a) longer-horizon eval (v13 descending, muon flat -> may cross below); (b) finer
   lambda; (c) v14 blend for small sizes; (d) more NS iters / meta-training for mid-phase.
 
+## Iteration 33c — v13 extended 6000-step eval: gap is descent-QUALITY, not horizon
+
+Extended to 6000 steps @10.7M:
+  v13 lam=0.5: 1.45@2000 -> 1.36@5600 (still descending ~0.02/700)
+  muon:        1.29@2000 -> 1.21@5600 (ALSO still descending, ~0.003/700)
+  gap stays ~0.14-0.16 across all horizons. MUON DID NOT FLATTEN -> longer horizon does
+  NOT close the gap. The deficit is late-phase descent QUALITY, ~0.15 nats.
+REFRAME: v13 meta-trained on short episodes (<=~1000 steps) -> optimized for EARLY
+  descent (where it BEATS muon <300 steps) but late-phase is extrapolation. v11's long
+  episodes destabilized the UN-damped/UN-orthogonalized v10 arch; v13's momentum+spectral
+  is now STABLE on long horizons -> long-episode training should finally teach late-phase
+  without v11's chaos. => v15 = spectral arch + long episodes (retry v11's idea on the
+  now-stable arch). This directly targets the mid/late gap.
+Pipeline: v14 (blend, small-size axis) training now; v15 (long episodes, horizon axis)
+  next. Two mandate axes, two runs.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
