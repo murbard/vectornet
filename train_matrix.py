@@ -43,13 +43,18 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
             particles = [{"x": x0.clone(), "H": None, "s": None,
                           "xi": torch.zeros_like(theta)} for _ in range(n_part)]
             steps_done = 0
-            # v11 negative result: episodes to 2000 (args.episode*5) DESTABILIZED the
-            # rule at scale (chaotic 3-20 oscillation) instead of extending descent.
-            # Long+noisy PES rollouts have high meta-gradient variance and no stability
-            # guarantee at the eval geometry. Reverted to v10's stable distribution; a
-            # single modest-long tier only.
-            episode_len = _rng.choice([args.episode // 10, args.episode // 5,
-                                       args.episode, int(args.episode * 2.5)])
+            # v11 (long episodes on the UN-damped/UN-orthogonalized v10 arch) destabilized.
+            # v13's momentum+spectral is stable on long horizons, so --long-episodes
+            # RETRIES the long-horizon idea to teach late-phase descent (the ~0.15-nat
+            # deficit vs Muon is late-phase quality, and time_inputs give the schedule
+            # mechanism that only long episodes train).
+            if args.long_episodes:
+                episode_len = _rng.choice([args.episode // 5, args.episode,
+                                           int(args.episode * 2.5), args.episode * 5,
+                                           int(args.episode * 12.5)])  # up to 5000 steps
+            else:
+                episode_len = _rng.choice([args.episode // 10, args.episode // 5,
+                                           args.episode, int(args.episode * 2.5)])
 
         half = [args.sigma * torch.randn_like(theta) for _ in range(args.pes_pairs)]
         eps = [e for pair in zip(half, [-e for e in half]) for e in pair]
@@ -139,6 +144,9 @@ def main():
     ap.add_argument("--blend", action="store_true",
                     help="learned per-layer mix of orthogonalized and raw update "
                          "(requires --momentum): orthogonalize big matrices, not small)")
+    ap.add_argument("--long-episodes", action="store_true",
+                    help="PES episodes up to ~5000 steps to teach late-phase descent "
+                         "(viable now that momentum+spectral is stable on long horizons)")
     ap.add_argument("--openml", action="store_true",
                     help="add the OpenML-CC18 train split (56 datasets) to the zoo")
     ap.add_argument("--init-from", default=None,
