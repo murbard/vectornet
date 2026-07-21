@@ -547,6 +547,23 @@ Small-MLP probes lag during warm-up (orthogonalization is aggressive on small/ta
 matrices; may want a learned blend later) but the TARGET (transformer scale) works.
 Let v13 finish 40k -> full benchmark. On track to reach/beat muon 1.29.
 
+## Iteration 33b — v13 FINAL scale benchmark: gap to Muon 1.1->0.16 nats; BEATS Muon <300 steps
+
+v13 (momentum+spectral, 40k) @10.7M GPT, 2000 steps:
+  zero-shot: 1.63 (smooth, still descending)   lambda=0.5: 1.45 (still descending)
+  muon: 1.29 (flat by 1800)   adamw: ~1.30
+  Head-to-head v13(lam=0.5) vs muon by step:
+    200: 1.86 vs 1.98  -> v13 AHEAD (beats muon at short horizon!)
+    400: 1.63 vs 1.60  ~tied
+    600: 1.56 vs 1.48  muon;  1000: 1.51 vs 1.38;  2000: 1.45 vs 1.29 (gap 0.16)
+  => v13 is FASTER early (<~300 steps), muon better mid-phase then flattens; v13 still
+     descending at 2000. Spectral closed 85% of the v10->muon gap (1.13 -> 0.16 nats).
+     PARTIAL MANDATE WIN: beats tuned muon per-step at short horizons at 10.7M scale.
+  Cost: small-MLP probes stuck ~0.2 (pure orthogonalization too aggressive on small/tall)
+     -> v14 blend addresses.
+NEXT: (a) longer-horizon eval (v13 descending, muon flat -> may cross below); (b) finer
+  lambda; (c) v14 blend for small sizes; (d) more NS iters / meta-training for mid-phase.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
