@@ -49,9 +49,11 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
             # deficit vs Muon is late-phase quality, and time_inputs give the schedule
             # mechanism that only long episodes train).
             if args.long_episodes:
+                # MODERATE (v15 lesson: 5000-step episodes destabilize PES; ES variance
+                # grows with rollout). Cap at ~1600 steps, paired with more PES particles
+                # + low meta-lr to control variance while adding late-phase experience.
                 episode_len = _rng.choice([args.episode // 5, args.episode,
-                                           int(args.episode * 2.5), args.episode * 5,
-                                           int(args.episode * 12.5)])  # up to 5000 steps
+                                           int(args.episode * 2.5), args.episode * 4])
             else:
                 episode_len = _rng.choice([args.episode // 10, args.episode // 5,
                                            args.episode, int(args.episode * 2.5)])

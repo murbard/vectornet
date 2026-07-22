@@ -580,6 +580,23 @@ REFRAME: v13 meta-trained on short episodes (<=~1000 steps) -> optimized for EAR
 Pipeline: v14 (blend, small-size axis) training now; v15 (long episodes, horizon axis)
   next. Two mandate axes, two runs.
 
+## Iteration 34 — v15 NEGATIVE (long episodes destabilize AGAIN); reframe late-phase fix
+
+v15 (spectral+blend+long-episodes up to 5000, warm v13) @step 12k scale check:
+  transformer traj 5.57->2.86->4.15->4.42 -- WORSE than v13 (1.63@400) AND bouncing.
+  Small-MLP probes climbed 0.20->1.01. Long episodes destabilized meta-training AGAIN.
+LESSON (2nd confirmation, v11 + v15): long PES episodes destabilize because ES gradient
+  VARIANCE GROWS WITH ROLLOUT LENGTH -- fundamental to the estimator, NOT fixed by
+  spectral. Also: I confounded blend+long+reinit-head in one run (undisciplined). Killed.
+REFRAME the late-phase gap (~0.15 nats vs muon, stable across horizons): can't use naive
+  long episodes. Better options, in order of promise:
+  A. GENTLE moderate-episode fine-tune: warm v13, episodes up to ~1600 (not 5000),
+     MORE pes-pairs (8, halves ES variance), LOW meta-lr (5e-5) so good weights aren't
+     wrecked. Single hypothesis: variance-controlled moderate episodes teach late-phase.
+  B. schedule prior: mild late-phase step decay via t/T (AdamW+cosine's late-phase edge).
+  C. accept v13 (already beats muon short-horizon + tabular + nanogpt@100; strong result).
+STANDING CHAMPION: learned_matrix13.pt. Trying (A) as v16, disciplined single-variable.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
