@@ -39,6 +39,23 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
         if particles is None:
             problem = sample_problem()
             x0 = problem.init_point()
+            # WARM-START CURRICULUM: for a fraction of episodes, pre-run the CURRENT model
+            # (detached, no grad) for a random number of steps so the episode starts from
+            # a near-converged state. This trains the rule on LATE-PHASE states inside
+            # SHORT stable rollouts -- the only route to late-phase experience that avoids
+            # both BPTT explosion and PES-long-episode variance.
+            if args.curriculum and _rng.random() < 0.5:
+                warm = _rng.choice([25, 50, 100, 200, 400])
+                vector_to_parameters(theta.detach(), model.parameters())
+                xw = x0.detach()
+                Hw, sw = model.init_state(xw.shape[0], problem.shapes, device)
+                for tw in range(warm):  # inner grad needs requires_grad; no meta-graph
+                    xw = xw.detach().requires_grad_(True)
+                    xw, Hw, sw, _ = model.step(problem, xw, Hw, sw,
+                                               create_graph=False, t=tw, budget=warm)
+                    Hw = [h.detach() for h in Hw]
+                    sw = [q.detach() for q in sw]
+                x0 = xw.detach()
             f0 = problem.meta_objective(x0).detach() + 1e-9
             particles = [{"x": x0.clone(), "H": None, "s": None,
                           "xi": torch.zeros_like(theta)} for _ in range(n_part)]
@@ -152,6 +169,9 @@ def main():
     ap.add_argument("--ns-iters", type=int, default=5,
                     help="Newton-Schulz orthogonalization iterations (higher = cleaner "
                          "orthogonalization = better late-phase; eval test showed 5->8 helps)")
+    ap.add_argument("--curriculum", action="store_true",
+                    help="warm-start half the PES episodes from a near-converged state "
+                         "(pre-run the model N steps) to train late-phase in short rollouts")
     ap.add_argument("--openml", action="store_true",
                     help="add the OpenML-CC18 train split (56 datasets) to the zoo")
     ap.add_argument("--init-from", default=None,

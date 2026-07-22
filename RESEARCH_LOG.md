@@ -597,6 +597,25 @@ REFRAME the late-phase gap (~0.15 nats vs muon, stable across horizons): can't u
   C. accept v13 (already beats muon short-horizon + tabular + nanogpt@100; strong result).
 STANDING CHAMPION: learned_matrix13.pt. Trying (A) as v16, disciplined single-variable.
 
+## Iteration 35 — NS-iters null, BPTT still explodes; late-phase root cause + curriculum idea
+
+- v17 (retrain ns=8) MATCHED vs v13 (ns=5), CPU batch24 lr0.5 1200 steps: IDENTICAL
+  within noise (1.53 vs 1.57 @1050). NS-iters retrain gives no late-phase gain. (Earlier
+  eval-time 5->8 benefit was small + batch-sensitive.) Killed v17.
+- BPTT stability test on v13 spectral arch (transformer, varying unroll): meta-grad-norm
+  2e3 (u20) -> 5e6 (u40) -> 2e13 (u80). STILL EXPLODES. Orthogonalization bounds the
+  UPDATE but not the meta-gradient (which accumulates through the recurrent state H,s).
+  BPTT confirmed non-viable for long horizons. => both long-horizon routes dead
+  (BPTT explodes, PES-long-episodes variance explodes).
+- ROOT CAUSE of the ~0.15-nat late-phase gap, now isolated across 5 failed attempts:
+  the rule NEVER SEES near-converged states in meta-training (short episodes from random
+  init reach only early/mid phase). muon's hand-tuned constants handle late-phase; the
+  learned rule extrapolates and loses ~0.15 nats.
+- NEW LEVER (v18): WARM-START CURRICULUM. Pre-run the model (detached, no_grad) for a
+  RANDOM number of steps before a fraction of PES episodes, so the rule trains on
+  late-phase states within SHORT stable rollouts -- attacks the root cause without
+  BPTT/long-episode explosions. Most principled untried option.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
