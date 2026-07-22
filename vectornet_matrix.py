@@ -53,7 +53,7 @@ class MatrixUnit(nn.Module):
     def __init__(self, k_hidden=4, k_mid=8, n_triples=4, n_scal_local=16,
                  n_scal_global=16, n_dot=16, n_scal_hidden=64, time_inputs=False,
                  cross_layer=False, fanin_gauge=False, momentum=False, spectral=False,
-                 blend=False):
+                 blend=False, ns_iters=5):
         super().__init__()
         self.k_hidden, self.k_mid, self.n_triples = k_hidden, k_mid, n_triples
         self.n_scal_local, self.n_scal_global = n_scal_local, n_scal_global
@@ -87,6 +87,11 @@ class MatrixUnit(nn.Module):
         # HELPS (large square transformer matrices) and leaves small/tall MLP layers raw.
         # Generalizes v12 (rho=0) and v13 (rho=1); keyed on shape via log a, log b inputs.
         self.blend = blend
+        # ns_iters: Newton-Schulz orthogonalization iterations. Higher = cleaner
+        # orthogonalization = better LATE-PHASE descent (eval-time test: 5->8 improved
+        # the scale trajectory, gap widening with steps). The rule is retrained at the
+        # chosen count so it adapts to the higher-quality update.
+        self.ns_iters = ns_iters
         assert not ((spectral or blend) and not momentum), "spectral/blend require momentum"
 
         k_in = k_hidden + 1 + (2 if cross_layer else 0)
@@ -192,7 +197,7 @@ class MatrixUnit(nn.Module):
                 # rho->1 orthogonalizes (good on big square matrices), rho->0 leaves the
                 # raw momentum direction (good on small/tall MLP layers).
                 M_new = g_ * M_prev + (1.0 - g_) * raw_dir
-                ortho = newton_schulz(M_new)
+                ortho = newton_schulz(M_new, iters=self.ns_iters)
                 rawn = M_new / (M_new.pow(2).mean(dim=(1, 2), keepdim=True) + 1e-24).sqrt()
                 r_ = rho.unsqueeze(-1)
                 delta = (r_ * ortho + (1.0 - r_) * rawn) * step
@@ -203,7 +208,7 @@ class MatrixUnit(nn.Module):
                 # then scale by the learned step. Newton-Schulz is a polynomial in our
                 # triple product, so this stays in-span.
                 M_new = g_ * M_prev + (1.0 - g_) * raw_dir
-                delta = newton_schulz(M_new) * step
+                delta = newton_schulz(M_new, iters=self.ns_iters) * step
             else:
                 # momentum on the already-scaled raw delta, applied directly
                 M_new = g_ * M_prev + (1.0 - g_) * (raw_dir * step)

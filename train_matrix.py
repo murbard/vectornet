@@ -149,6 +149,9 @@ def main():
     ap.add_argument("--long-episodes", action="store_true",
                     help="PES episodes up to ~5000 steps to teach late-phase descent "
                          "(viable now that momentum+spectral is stable on long horizons)")
+    ap.add_argument("--ns-iters", type=int, default=5,
+                    help="Newton-Schulz orthogonalization iterations (higher = cleaner "
+                         "orthogonalization = better late-phase; eval test showed 5->8 helps)")
     ap.add_argument("--openml", action="store_true",
                     help="add the OpenML-CC18 train split (56 datasets) to the zoo")
     ap.add_argument("--init-from", default=None,
@@ -183,7 +186,8 @@ def main():
                                    cross_layer=args.cross_layer,
                                    fanin_gauge=args.fanin_gauge,
                                    momentum=args.momentum, spectral=args.spectral,
-                                   blend=args.blend, **size_kwargs).to(device)
+                                   blend=args.blend, ns_iters=args.ns_iters,
+                                   **size_kwargs).to(device)
     if args.init_from:
         src = torch.load(args.init_from, map_location=device)["state_dict"]
         own = model.state_dict()
