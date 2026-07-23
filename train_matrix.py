@@ -46,27 +46,21 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
             # both BPTT explosion and PES-long-episode variance.
             # skip warm-start on the largest problems (the pre-run's live forward can OOM
             # on d256 transformers); curriculum matters most on the medium/large ones anyway
-            _base = getattr(problem, "base", problem)  # unwrap ReparamWrapper
-            if (args.curriculum and _rng.random() < 0.5
-                    and getattr(_base, "n_params", 1e9) < 1_000_000):
+            if args.curriculum and _rng.random() < 0.5:
+                # WARM-START via a CHEAP baseline (Adam), not the learned optimizer:
+                # a few Adam steps push x0 to a partially-converged state at negligible
+                # memory (one backward, no recurrent state), so the episode trains the
+                # rule on LATE-PHASE states inside a short stable rollout -- the route to
+                # late-phase experience that avoids BPTT explosion, PES-episode variance,
+                # AND the memory blow-up of a learned-optimizer warm-start.
                 warm = _rng.choice([25, 50, 100, 200, 400])
-                if device.type == "cuda":
-                    torch.cuda.empty_cache()
-                try:
-                    vector_to_parameters(theta.detach(), model.parameters())
-                    xw = x0.detach()
-                    Hw, sw = model.init_state(xw.shape[0], problem.shapes, device)
-                    for tw in range(warm):  # inner grad needs grad; no meta-graph
-                        xw = xw.detach().requires_grad_(True)
-                        xw, Hw, sw, _ = model.step(problem, xw, Hw, sw,
-                                                   create_graph=False, t=tw, budget=warm)
-                        Hw = [h.detach() for h in Hw]
-                        sw = [q.detach() for q in sw]
-                    x0 = xw.detach()
-                except torch.cuda.OutOfMemoryError:
-                    torch.cuda.empty_cache()  # skip warm-start this episode, keep training
-                if device.type == "cuda":
-                    torch.cuda.empty_cache()
+                xw = x0.detach().clone().requires_grad_(True)
+                wopt = torch.optim.Adam([xw], lr=_rng.choice([3e-3, 1e-2, 3e-2]))
+                for _ in range(warm):
+                    wopt.zero_grad()
+                    problem.meta_objective(xw).sum().backward()
+                    wopt.step()
+                x0 = xw.detach()
             f0 = problem.meta_objective(x0).detach() + 1e-9
             particles = [{"x": x0.clone(), "H": None, "s": None,
                           "xi": torch.zeros_like(theta)} for _ in range(n_part)]
@@ -276,10 +270,7 @@ def main():
             # d up to 256: shrink the geometry gap to the scale benchmark (d=384).
             # memory: PES particles each hold k_hidden x params of state, so the
             # biggest configs run tiny (P=1, ctx<=64, L<=2, B<=8)
-            # d256 LM tasks are the memory spikes; cap at 128 when curriculum is on so
-            # the warm-start pre-run fits the 3060's 12GB (d128 is still a real transformer)
-            d_lm = rng.choice([16, 32, 48, 96, 128] if args.curriculum
-                              else [16, 32, 48, 96, 128, 256])
+            d_lm = rng.choice([16, 32, 48, 96, 128, 256])
             big = d_lm > 128
             n_prob = 1 if big else (4 if d_lm > 48 else min(args.problems, 8))
             problem = TransformerLMProblem(
