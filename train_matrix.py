@@ -122,6 +122,8 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
         torch.nn.utils.clip_grad_norm_([theta], 1.0)
         meta_opt.step()
 
+        if args.curriculum and device.type == "cuda" and step % 20 == 0:
+            torch.cuda.empty_cache()  # periodic defrag; curriculum churns alloc sizes
         steps_done += args.segment
         if steps_done >= episode_len:
             particles = None
@@ -274,7 +276,10 @@ def main():
             # d up to 256: shrink the geometry gap to the scale benchmark (d=384).
             # memory: PES particles each hold k_hidden x params of state, so the
             # biggest configs run tiny (P=1, ctx<=64, L<=2, B<=8)
-            d_lm = rng.choice([16, 32, 48, 96, 128, 256])
+            # d256 LM tasks are the memory spikes; cap at 128 when curriculum is on so
+            # the warm-start pre-run fits the 3060's 12GB (d128 is still a real transformer)
+            d_lm = rng.choice([16, 32, 48, 96, 128] if args.curriculum
+                              else [16, 32, 48, 96, 128, 256])
             big = d_lm > 128
             n_prob = 1 if big else (4 if d_lm > 48 else min(args.problems, 8))
             problem = TransformerLMProblem(
