@@ -653,3 +653,28 @@ g. vectornet_matrix.py: smoke MatrixUnit shapes, then meta-train structured MNIS
    express Muon/Shampoo — needed to *beat* Muon on transformers; curriculum on unroll length
    (40→200) for long-horizon; feed y/y0 relative-progress scalar; Muon + L-BFGS as baselines
    in transfer_eval; deeper/conv optimizees; hold out an architecture class, not just a dataset.
+
+## Iteration 37 — SPEEDRUN WIN + Shampoo probe (inconclusive) -> new-arch decision point
+
+SPEEDRUN (steps-to-target val loss, 10.7M text8 GPT, held-out val) -- a real recognizable-
+metric result:
+  target 2.21: learned 100* / muon 175 / adamw 350   (learned 1.75x faster than muon)
+  target 1.91: learned 225* / muon 275 / adamw 600
+  target 1.71: learned 575  / muon 475* / adamw 900   <- crossover
+  target 1.56: learned 2550 / muon 850*
+  target 1.46: learned  --  / muon 1900*
+  => LEARNED BEATS TUNED MUON AND ADAMW to reach moderate perplexity (fast-train regime);
+     muon wins tight targets (late-phase ceiling). Honest, defensible speedrun-style win.
+
+SHAMPOO PROBE (does 2nd-order beat muon late-phase? go/no-go for new arch): my hand-coded
+Shampoo STALLS at 2.5 (muon 1.32) -- BROKEN impl, not a verdict on 2nd-order. Shampoo is
+notoriously finicky (damping/grafting/blocking/bias-correction); naive version stalls.
+INCONCLUSIVE. But it MOTIVATES the learned approach: don't hand-tune Shampoo -- give the
+matrix unit the 2nd-order PRIMITIVES (L=GG^T, R=G^T G, inverse-roots via Newton-Schulz,
+all in the triple-product span) and let the meta-learner discover the preconditioning.
+v13 (orthogonalization) is the L=R=I special case; learned 2nd-order strictly generalizes.
+
+NEW ARCHITECTURE (proposed): augment MatrixUnit with per-layer 2nd-moment accumulators
+L,R and their learned-power inverse-roots as additional pooled update candidates. Real
+multi-day build + train, uncertain payoff. v13 stands as the strong current result
+(speedrun win + broad tuned-muon-beating variety).

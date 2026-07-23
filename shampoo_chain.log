@@ -1,0 +1,19 @@
+SPEEDRUN_DONE
+10.7M GPT, 1500 steps. init 3.695
+
+pilot(400): muon lr=0.003 (1.618)  shampoo lr=0.03 (18.853)
+
+Traceback (most recent call last):
+  File "/media/bigdisk/src/vectornet/shampoo_probe.py", line 128, in <module>
+    main()
+  File "/media/bigdisk/src/vectornet/shampoo_probe.py", line 116, in main
+    ts = run_shampoo(train, val, x0, args.steps, sh, precond_every=25)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/media/bigdisk/src/vectornet/shampoo_probe.py", line 53, in run_shampoo
+    Lr[l] = inv_root(L[l])   # a x a, ^-1/4
+            ^^^^^^^^^^^^^^
+  File "/media/bigdisk/src/vectornet/shampoo_probe.py", line 25, in inv_root
+    evals, evecs = torch.linalg.eigh(M)
+                   ^^^^^^^^^^^^^^^^^^^^
+torch._C._LinAlgError: linalg.eigh: The algorithm failed to converge because the input matrix is ill-conditioned or has too many repeated eigenvalues (error code: 1).
+SHAMPOO_DONE

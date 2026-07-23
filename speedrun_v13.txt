@@ -1,0 +1,16 @@
+optimizee: 10.7M params  |  val = held-out 10% of text8
+init val loss 3.681
+
+pilots: learned lambda=0.5  muon lr=0.003  adamw lr=0.001
+
+final val loss: learned 1.578  muon 1.438  adamw 1.414
+
+STEPS TO REACH TARGET VAL LOSS (fewer = faster; '--' = never in 3000):
+target    learned (lambda=0.5)         muon (lr=0.003)        adamw (lr=0.001)
+ 2.21                     100*                   175                    350  
+ 1.91                     225*                   275                    600  
+ 1.71                     575                    475*                   900  
+ 1.56                    2550                    850*                  1425  
+ 1.46                      --                   1900*                  2125  
+
+* = fastest to that target. Loose targets favor fast early descent; tight targets favor late-phase quality.
