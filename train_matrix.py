@@ -44,7 +44,11 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
             # a near-converged state. This trains the rule on LATE-PHASE states inside
             # SHORT stable rollouts -- the only route to late-phase experience that avoids
             # both BPTT explosion and PES-long-episode variance.
-            if args.curriculum and _rng.random() < 0.5:
+            # skip warm-start on the largest problems (the pre-run's live forward can OOM
+            # on d256 transformers); curriculum matters most on the medium/large ones anyway
+            _base = getattr(problem, "base", problem)  # unwrap ReparamWrapper
+            if (args.curriculum and _rng.random() < 0.5
+                    and getattr(_base, "n_params", 1e9) < 2_000_000):
                 warm = _rng.choice([25, 50, 100, 200, 400])
                 vector_to_parameters(theta.detach(), model.parameters())
                 xw = x0.detach()
@@ -56,6 +60,8 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
                     Hw = [h.detach() for h in Hw]
                     sw = [q.detach() for q in sw]
                 x0 = xw.detach()
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
             f0 = problem.meta_objective(x0).detach() + 1e-9
             particles = [{"x": x0.clone(), "H": None, "s": None,
                           "xi": torch.zeros_like(theta)} for _ in range(n_part)]
