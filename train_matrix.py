@@ -93,19 +93,19 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
                 problem.draw_counter = steps_done
             x = p["x"].detach().requires_grad_(True)
             if p["H"] is None:
-                H, s = model.init_state(x.shape[0], problem.shapes, device)
+                H, s, so = model.init_state(x.shape[0], problem.shapes, device)
             else:
-                H, s = p["H"], p["s"]
+                H, s, so = p["H"], p["s"], p.get("so")
             terms = []
             for j in range(args.segment):
-                x, H, s, y = model.step(problem, x, H, s, create_graph=False,
-                                        t=steps_done + j, budget=episode_len)
+                x, H, s, so, y = model.step(problem, x, H, s, so, create_graph=False,
+                                            t=steps_done + j, budget=episode_len)
                 x = x.detach().requires_grad_(True)
                 H = [h.detach() for h in H]
                 s = [t.detach() for t in s]
                 terms.append(torch.log(y.detach() / f0 + 1e-9).mean())
             losses[k] = torch.stack(terms).mean()
-            p["x"], p["H"], p["s"] = x.detach(), H, s
+            p["x"], p["H"], p["s"], p["so"] = x.detach(), H, s, so
             p["xi"] = p["xi"] + eps[k]
 
         centered = losses - losses.mean()
@@ -174,8 +174,11 @@ def main():
                     help="PES episodes up to ~5000 steps to teach late-phase descent "
                          "(viable now that momentum+spectral is stable on long horizons)")
     ap.add_argument("--ns-iters", type=int, default=5,
-                    help="Newton-Schulz orthogonalization iterations (higher = cleaner "
-                         "orthogonalization = better late-phase; eval test showed 5->8 helps)")
+                    help="Newton-Schulz orthogonalization iterations")
+    ap.add_argument("--second-order", action="store_true",
+                    help="learned Shampoo/K-FAC 2nd-order preconditioning (L=EMA(GGt), "
+                         "R=EMA(GtG), L^-1/4 M R^-1/4 blended by learned rho2; targets "
+                         "the late-phase ceiling. Requires --momentum.)")
     ap.add_argument("--curriculum", action="store_true",
                     help="warm-start half the PES episodes from a near-converged state "
                          "(pre-run the model N steps) to train late-phase in short rollouts")
@@ -214,6 +217,7 @@ def main():
                                    fanin_gauge=args.fanin_gauge,
                                    momentum=args.momentum, spectral=args.spectral,
                                    blend=args.blend, ns_iters=args.ns_iters,
+                                   second_order=args.second_order,
                                    **size_kwargs).to(device)
     if args.init_from:
         src = torch.load(args.init_from, map_location=device)["state_dict"]

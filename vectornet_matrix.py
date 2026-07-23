@@ -41,6 +41,34 @@ def triple(X, Y, Z):
     return X @ Y.transpose(-1, -2) @ Z
 
 
+def _ns_sqrt_pair(A, iters):
+    """Coupled Newton-Schulz: Y->A^{1/2}, Z->A^{-1/2} for symmetric A, spectrum in (0,1]."""
+    n = A.shape[-1]
+    I = torch.eye(n, device=A.device, dtype=A.dtype)
+    Y, Z = A, I.expand_as(A).clone()
+    for _ in range(iters):
+        T = 0.5 * (3 * I - Z @ Y)
+        Y = Y @ T
+        Z = T @ Z
+    return Y, Z
+
+
+def inv_fourth_root(M, iters=12, eps=1e-8):
+    """M^{-1/4} for batched symmetric PSD M via composed Newton-Schulz (matmul-only, in
+    the triple-product span, differentiable). Two nested sqrt-pairs: A^{-1/2} then its
+    sqrt. Trace-normalized + damped for conditioning. Validated vs eigh to ~1e-3 rel."""
+    M = 0.5 * (M + M.transpose(-1, -2))
+    n = M.shape[-1]
+    I = torch.eye(n, device=M.device, dtype=M.dtype)
+    s = torch.diagonal(M, dim1=-2, dim2=-1).sum(-1).clamp_min(eps)  # ~ scale (trace)
+    s = s.view(*s.shape, 1, 1)
+    A = M / s + eps * I
+    _, Zi = _ns_sqrt_pair(A, iters)                     # Zi ~ A^{-1/2}
+    s2 = torch.diagonal(Zi, dim1=-2, dim2=-1).sum(-1).clamp_min(eps).view(*s.shape)
+    Yh, _ = _ns_sqrt_pair(Zi / s2 + eps * I, iters)     # Yh ~ (Zi/s2)^{1/2}
+    return Yh * s2.pow(0.5) * s.pow(-0.25)              # M^{-1/4}
+
+
 class MatrixUnit(nn.Module):
     """
     One step of the recurrent optimizer for ONE layer's matrix block, batched over
@@ -53,7 +81,7 @@ class MatrixUnit(nn.Module):
     def __init__(self, k_hidden=4, k_mid=8, n_triples=4, n_scal_local=16,
                  n_scal_global=16, n_dot=16, n_scal_hidden=64, time_inputs=False,
                  cross_layer=False, fanin_gauge=False, momentum=False, spectral=False,
-                 blend=False, ns_iters=5):
+                 blend=False, ns_iters=5, second_order=False, so_max_dim=768):
         super().__init__()
         self.k_hidden, self.k_mid, self.n_triples = k_hidden, k_mid, n_triples
         self.n_scal_local, self.n_scal_global = n_scal_local, n_scal_global
@@ -92,7 +120,16 @@ class MatrixUnit(nn.Module):
         # the scale trajectory, gap widening with steps). The rule is retrained at the
         # chosen count so it adapts to the higher-quality update.
         self.ns_iters = ns_iters
+        # second_order: maintain per-layer curvature accumulators L=EMA(GG^T), R=EMA(G^T G)
+        # and expose the Shampoo/K-FAC preconditioned direction L^{-1/4} M R^{-1/4} as an
+        # additional learned update candidate (blended with the orthogonalized one). This
+        # is the LATE-PHASE lever the diagnosis pointed to; v13 (orthogonalization) is the
+        # L=R=I special case. so_max_dim caps which matrices get 2nd-order (memory); larger
+        # ones fall back to orthogonalization. The learned rho2 mixes 2nd-order vs spectral.
+        self.second_order = second_order
+        self.so_max_dim = so_max_dim
         assert not ((spectral or blend) and not momentum), "spectral/blend require momentum"
+        assert not (second_order and not momentum), "second_order requires momentum"
 
         k_in = k_hidden + 1 + (2 if cross_layer else 0)
         k_pool = k_mid + n_triples               # mid stack after the quadratic stage
@@ -116,15 +153,22 @@ class MatrixUnit(nn.Module):
         # net B: features + post-triple invariants -> new local scalars + log step
         self.trace_w3 = nn.Parameter(torch.randn(k_pool, n_dot) / math.sqrt(k_pool))
         self.trace_w4 = nn.Parameter(torch.randn(k_pool, n_dot) / math.sqrt(k_pool))
-        # net_b outputs: new local scalars + log_step (+ gamma when momentum)(+ rho when blend)
-        n_out = n_scal_local + 1 + (1 if momentum else 0) + (1 if blend else 0)
+        # net_b output slots (explicit, extensible): [local(nl)] [log_step] [gamma?]
+        # [rho?] [rho2?]. Indices computed in forward from the same flags.
+        self._i_step = n_scal_local
+        self._i_gamma = n_scal_local + 1
+        self._i_rho = self._i_gamma + (1 if momentum else 0)
+        self._i_rho2 = self._i_rho + (1 if blend else 0)
+        n_out = self._i_rho2 + (1 if second_order else 0)
         self.net_b = ScalarMLP([n_feat + n_dot, n_scal_hidden, n_out])
-        with torch.no_grad():  # cold-start the step size: exp(-3) ~ 0.05
-            self.net_b.layers[-1].bias[n_scal_local] = -3.0
-            if momentum:  # cold-start gamma ~ sigmoid(2) = 0.88 (Muon-like heavy damping)
-                self.net_b.layers[-1].bias[n_scal_local + 1] = 2.0
-            if blend:  # cold-start rho ~ sigmoid(1) = 0.73 (lean toward orthogonalizing)
-                self.net_b.layers[-1].bias[-1] = 1.0
+        with torch.no_grad():
+            self.net_b.layers[-1].bias[self._i_step] = -3.0   # step exp(-3)~0.05
+            if momentum:  # gamma ~ sigmoid(2)=0.88 (Muon-like heavy damping)
+                self.net_b.layers[-1].bias[self._i_gamma] = 2.0
+            if blend:  # rho ~ sigmoid(1)=0.73 (lean toward orthogonalizing)
+                self.net_b.layers[-1].bias[self._i_rho] = 1.0
+            if second_order:  # rho2 ~ sigmoid(-1)=0.27 (start mostly spectral, ease in 2nd-order)
+                self.net_b.layers[-1].bias[self._i_rho2] = -1.0
 
         # output: delta + new hidden matrices, small init => near-stationary start
         self.out_comb = nn.Parameter(0.1 * torch.randn(k_pool, k_hidden + 1) / math.sqrt(k_pool))
@@ -177,9 +221,11 @@ class MatrixUnit(nn.Module):
             [feats, self._traces(pool, pool, self.trace_w3, self.trace_w4)], dim=1))
         nl = self.n_scal_local
         s_local_new = torch.tanh(s_out[:, :nl])
-        log_step = s_out[:, nl:nl + 1].clamp(-8.0, 2.0)
-        gamma = torch.sigmoid(s_out[:, nl + 1:nl + 2]) if self.momentum else None
-        rho = torch.sigmoid(s_out[:, -1:]) if self.blend else None
+        log_step = s_out[:, self._i_step:self._i_step + 1].clamp(-8.0, 2.0)
+        gamma = torch.sigmoid(s_out[:, self._i_gamma:self._i_gamma + 1]) if self.momentum else None
+        rho = torch.sigmoid(s_out[:, self._i_rho:self._i_rho + 1]) if self.blend else None
+        rho2 = (torch.sigmoid(s_out[:, self._i_rho2:self._i_rho2 + 1])
+                if self.second_order else None)
 
         out = torch.einsum("pmab,mo->poab", pool, self.out_comb)
         raw_dir = out[:, 0]                                    # unscaled update direction
@@ -216,7 +262,9 @@ class MatrixUnit(nn.Module):
             H_new = torch.cat([H_new, M_new.unsqueeze(1)], dim=1)
         else:
             delta = raw_dir * step
-        return delta, H_new, s_local_new, log_step
+        # second-order preconditioning is applied in step() (it holds L,R and the
+        # gradient); the unit exposes rho2 (mix) and the step scale for it.
+        return delta, H_new, s_local_new, log_step, rho2, step
 
 
 class LearnedMatrixOptimizer(nn.Module):
@@ -238,21 +286,32 @@ class LearnedMatrixOptimizer(nn.Module):
         n_local = self.unit.n_scal_local
         self.pool_proj = nn.Linear(n_local, self.unit.n_scal_global)
 
+    def _so_ok(self, aa, bb):
+        return self.unit.second_order and max(aa, bb) <= self.unit.so_max_dim
+
     def init_state(self, P, shapes, device):
         # When momentum is on, each H tensor carries one EXTRA channel: the last slot is
         # the magnitude-carrying momentum buffer M (not rms-normalized), the first
-        # k_hidden are the usual direction memories. Bundling M into H keeps the state
-        # signature (H, s) unchanged, so every caller threads momentum for free.
+        # k_hidden are the usual direction memories.
         kh = self.unit.k_hidden + (1 if self.unit.momentum else 0)
         H = [torch.zeros(P, kh, aa, bb, device=device) for aa, bb in shapes]
         s = [torch.zeros(P, self.unit.n_scal_local, device=device) for _ in shapes]
-        return H, s
+        # second-order curvature accumulators L=(a,a), R=(b,b) per eligible layer
+        so = None
+        if self.unit.second_order:
+            so = []
+            for aa, bb in shapes:
+                if self._so_ok(aa, bb):
+                    so.append([torch.zeros(P, aa, aa, device=device),
+                               torch.zeros(P, bb, bb, device=device)])
+                else:
+                    so.append(None)
+        return H, s, so
 
-    def step(self, problem, x, H, s, create_graph=True, lr_scale=1.0, t=0, budget=None):
-        """lr_scale: optional single tunable scalar multiplying every update — the
-        one-hyperparameter variant for apples-to-apples comparison with lr-tuned
-        baselines. 1.0 = fully zero-shot. t/budget: step index and declared horizon
-        (used only when the unit was built with time_inputs)."""
+    def step(self, problem, x, H, s, so=None, create_graph=True, lr_scale=1.0,
+             t=0, budget=None):
+        """lr_scale: single tunable scalar multiplying every update (1.0 = zero-shot).
+        so: per-layer [L, R] curvature accumulators (second-order), threaded like H,s."""
         y = problem.meta_objective(x)
         (g,) = torch.autograd.grad(y.sum(), x, create_graph=create_graph)
         s_global = self.pool_proj(torch.stack(s, dim=0).mean(dim=0))
@@ -286,20 +345,46 @@ class LearnedMatrixOptimizer(nn.Module):
             return torch.stack([left, right], dim=1)
 
         new_x, new_H, new_s = [], [], []
+        new_so = [] if so is not None else None
         i = 0
         for l, (aa, bb) in enumerate(problem.shapes):
             Gm = g[:, i:i + aa * bb].view(-1, aa, bb)
-            delta, Hn, sn, log_step = self.unit(Gm, H[l], s[l], s_global, y,
-                                                t=t, budget=budget,
-                                                cross=cross_feats(l))
+            delta, Hn, sn, log_step, rho2, step_scale = self.unit(
+                Gm, H[l], s[l], s_global, y, t=t, budget=budget, cross=cross_feats(l))
+
+            # SECOND-ORDER: blend the orthogonalized update with the Shampoo-preconditioned
+            # momentum L^{-1/4} M R^{-1/4} (rms-matched), by the learned mix rho2.
+            if so is not None and so[l] is not None:
+                L, R = so[l]
+                beta = 0.95
+                Ln = beta * L + (1 - beta) * (Gm @ Gm.transpose(-1, -2))
+                Rn = beta * R + (1 - beta) * (Gm.transpose(-1, -2) @ Gm)
+                new_so.append([Ln.detach(), Rn.detach()])  # curvature stats: no meta-graph
+
+                def _damp(A):  # relative damping so early rank-deficient A is conditioned
+                    n = A.shape[-1]
+                    I = torch.eye(n, device=A.device, dtype=A.dtype)
+                    tr = torch.diagonal(A, dim1=-2, dim2=-1).mean(-1).clamp_min(1e-12)
+                    return A + 0.1 * tr.view(-1, 1, 1) * I
+
+                M = Hn[:, -1]                               # momentum buffer
+                so_dir = (inv_fourth_root(_damp(Ln.detach())) @ M
+                          @ inv_fourth_root(_damp(Rn.detach())))
+                so_dir = (so_dir / (so_dir.pow(2).mean(dim=(1, 2), keepdim=True) + 1e-24).sqrt()
+                          * (delta.pow(2).mean(dim=(1, 2), keepdim=True) + 1e-24).sqrt())
+                # ramp 2nd-order in over the first ~50 steps while L,R accumulate (they are
+                # near-rank-1 early -> the preconditioned direction is unreliable then)
+                ramp = min(1.0, t / 50.0)
+                r2 = rho2.unsqueeze(-1) * ramp
+                delta = (1.0 - r2) * delta + r2 * so_dir
+            elif new_so is not None:
+                new_so.append(None)
+
             gauge = math.sqrt(48.0 / aa) if self.unit.fanin_gauge else 1.0
             new_x.append(x[:, i:i + aa * bb]
                          + delta.reshape(x.shape[0], aa * bb) * (lr_scale * gauge))
             i += aa * bb
             if has_biases:
-                # bias block: normalized-gradient step at the layer's learned step size,
-                # capped low — an unbounded bias step blows up the inner trajectory and
-                # feeds back into the meta-gradients (observed: gnorm 5e9)
                 gb = g[:, i:i + bb]
                 gb_rms = (gb.pow(2).mean(dim=1, keepdim=True) + 1e-24).sqrt()
                 new_x.append(x[:, i:i + bb]
@@ -307,15 +392,15 @@ class LearnedMatrixOptimizer(nn.Module):
                 i += bb
             new_H.append(Hn)
             new_s.append(sn)
-        return torch.cat(new_x, dim=1), new_H, new_s, y
+        return torch.cat(new_x, dim=1), new_H, new_s, new_so, y
 
     def forward(self, x0, problem, n_steps, meta=True, lr_scale=1.0):
         x = x0.requires_grad_(True)
-        H, s = self.init_state(x0.shape[0], problem.shapes, x0.device)
+        H, s, so = self.init_state(x0.shape[0], problem.shapes, x0.device)
         losses = []
         for t in range(n_steps):
-            x, H, s, y = self.step(problem, x, H, s, create_graph=meta,
-                                   lr_scale=lr_scale, t=t, budget=n_steps)
+            x, H, s, so, y = self.step(problem, x, H, s, so, create_graph=meta,
+                                       lr_scale=lr_scale, t=t, budget=n_steps)
             if not meta:
                 x = x.detach().requires_grad_(True)
                 H = [h.detach() for h in H]

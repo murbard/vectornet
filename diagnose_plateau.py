@@ -43,7 +43,7 @@ def main():
 
     prob, eval_prob = make_problem(device, batch=24)
     x = prob.init_point(torch.Generator(device=device).manual_seed(1)).requires_grad_(True)
-    H, s = model.init_state(1, prob.shapes, device)
+    H, s, so = model.init_state(1, prob.shapes, device)
 
     def flat(state):
         return torch.cat([t.reshape(-1) for t in state])
@@ -52,8 +52,8 @@ def main():
     print(f"{'step':>5} {'loss':>8} {'dH/H':>8} {'ds':>8} {'logstep':>8} "
           f"{'updrms':>9} {'cos_prev':>8}", flush=True)
     for t in range(args.steps):
-        x, H, s, y = model.step(prob, x, H, s, create_graph=False,
-                                lr_scale=args.lr_scale, t=t, budget=args.steps)
+        x, H, s, so, y = model.step(prob, x, H, s, so, create_graph=False,
+                                    lr_scale=args.lr_scale, t=t, budget=args.steps)
         x = x.detach().requires_grad_(True)
         H = [h.detach() for h in H]
         s = [q.detach() for q in s]

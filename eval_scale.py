@@ -38,11 +38,11 @@ def make_problem(device, steps_seed=0, batch=24, eval_batch=64):
 
 def run_learned(model, prob, eval_prob, x0, n_steps, lr_scale, eval_every=100):
     x = x0.clone().requires_grad_(True)
-    H, s = model.init_state(1, prob.shapes, x0.device)
+    H, s, so = model.init_state(1, prob.shapes, x0.device)
     trace, t0 = [], time.time()
     for t in range(n_steps):
-        x, H, s, _ = model.step(prob, x, H, s, create_graph=False,
-                                lr_scale=lr_scale, t=t, budget=n_steps)
+        x, H, s, so, _ = model.step(prob, x, H, s, so, create_graph=False,
+                                    lr_scale=lr_scale, t=t, budget=n_steps)
         x = x.detach().requires_grad_(True)
         H = [h.detach() for h in H]
         s = [q.detach() for q in s]
