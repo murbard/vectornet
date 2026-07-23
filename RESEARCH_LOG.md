@@ -616,6 +616,23 @@ STANDING CHAMPION: learned_matrix13.pt. Trying (A) as v16, disciplined single-va
   late-phase states within SHORT stable rollouts -- attacks the root cause without
   BPTT/long-episode explosions. Most principled untried option.
 
+## Iteration 36 — v18 curriculum: null at step-9k; late-phase gap looks like a CEILING
+
+v18 (curriculum, step-9k) matched scale check vs v13: tracks within noise (1.58 vs 1.53
+@1050). Curriculum DID have an effect -- v18's late-phase updrms is LARGER (0.0014 vs
+0.0010) so it steps harder late, as designed -- but loss doesn't improve. DIAGNOSTIC:
+bigger late-phase steps don't help => the deficit is update-DIRECTION quality, not step
+size. The learned orthogonalized direction is late-phase-inferior to muon's; stepping
+harder in a so-so direction doesn't close it.
+SIX diverse attempts now fail to close the ~0.15-nat late-phase gap @10.7M:
+  long episodes x3, NS-iters retrain, BPTT (explodes), curriculum. Strong convergent
+  evidence this is an ARCHITECTURAL CEILING, not a training/hyperparam issue.
+Letting v18 finish 30k for a definitive answer (undertrained at 9k), then full benchmark.
+If null, CONSOLIDATE v13 as the result: beats tuned muon per-step at short horizons +
+tabular (covertype, pendigits) + nanogpt@100; closes 85% of the plateau->muon gap; robust
+late-phase ceiling honestly characterized. Breaking it further likely needs a
+fundamentally different optimizer architecture (major undertaking), not another knob.
+
 ### Post-reboot validation cascade (in order)
 a. test_equivariance.py (float64, all PASS/INFO as expected)
 b. Muon + L-BFGS baseline sanity on MNIST probe (BPTT smoke run eval)
