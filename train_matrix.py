@@ -48,18 +48,23 @@ def train_pes_matrix(model, sample_problem, args, device, evaluate_hook=None,
             # on d256 transformers); curriculum matters most on the medium/large ones anyway
             _base = getattr(problem, "base", problem)  # unwrap ReparamWrapper
             if (args.curriculum and _rng.random() < 0.5
-                    and getattr(_base, "n_params", 1e9) < 2_000_000):
+                    and getattr(_base, "n_params", 1e9) < 1_000_000):
                 warm = _rng.choice([25, 50, 100, 200, 400])
-                vector_to_parameters(theta.detach(), model.parameters())
-                xw = x0.detach()
-                Hw, sw = model.init_state(xw.shape[0], problem.shapes, device)
-                for tw in range(warm):  # inner grad needs requires_grad; no meta-graph
-                    xw = xw.detach().requires_grad_(True)
-                    xw, Hw, sw, _ = model.step(problem, xw, Hw, sw,
-                                               create_graph=False, t=tw, budget=warm)
-                    Hw = [h.detach() for h in Hw]
-                    sw = [q.detach() for q in sw]
-                x0 = xw.detach()
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()
+                try:
+                    vector_to_parameters(theta.detach(), model.parameters())
+                    xw = x0.detach()
+                    Hw, sw = model.init_state(xw.shape[0], problem.shapes, device)
+                    for tw in range(warm):  # inner grad needs grad; no meta-graph
+                        xw = xw.detach().requires_grad_(True)
+                        xw, Hw, sw, _ = model.step(problem, xw, Hw, sw,
+                                                   create_graph=False, t=tw, budget=warm)
+                        Hw = [h.detach() for h in Hw]
+                        sw = [q.detach() for q in sw]
+                    x0 = xw.detach()
+                except torch.cuda.OutOfMemoryError:
+                    torch.cuda.empty_cache()  # skip warm-start this episode, keep training
                 if device.type == "cuda":
                     torch.cuda.empty_cache()
             f0 = problem.meta_objective(x0).detach() + 1e-9

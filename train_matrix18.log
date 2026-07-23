@@ -9,3 +9,72 @@ pes     0  seg-loss -0.9794  ema -0.9794
   eval[h16-long] learned: loss 0.0000 acc 1.000  vs  muon(lr=0.03): loss 0.0000 acc 1.000
   eval[fashion-h16 HELD-OUT] learned: loss 0.0022 acc 0.999  vs  muon(lr=0.03): loss 0.0000 acc 1.000
   eval[fashion-h64 HELD-OUT] learned: loss 0.0000 acc 1.000  vs  muon(lr=0.03): loss 0.0000 acc 1.000
+pes    25  seg-loss -20.4636  ema -7.4382
+pes    50  seg-loss -20.6992  ema -12.6775
+pes    75  seg-loss -20.6553  ema -14.6412
+  probe-score -3.7679 (new best, saved)
+pes   100  seg-loss -20.1193  ema -16.8878
+pes   125  seg-loss -7.8693  ema -17.6139
+pes   150  seg-loss -20.7131  ema -18.7139
+pes   175  seg-loss -2.4330  ema -18.6936
+  probe-score -4.0372 (new best, saved)
+pes   200  seg-loss -20.6339  ema -18.7215
+pes   225  seg-loss -20.3871  ema -19.4571
+pes   250  seg-loss -1.3149  ema -13.1739
+pes   275  seg-loss -1.6033  ema -8.5353
+pes   300  seg-loss -7.4217  ema -6.5261
+pes   325  seg-loss -9.2854  ema -7.3830
+pes   350  seg-loss -0.6088  ema -5.6125
+pes   375  seg-loss 0.0214  ema -3.3724
+pes   400  seg-loss -0.1083  ema -2.0650
+pes   425  seg-loss -18.3146  ema -6.8410
+pes   450  seg-loss -17.5327  ema -11.1818
+pes   475  seg-loss -16.9368  ema -13.4687
+pes   500  seg-loss -16.6377  ema -14.9463
+pes   525  seg-loss -1.2203  ema -12.3115
+pes   550  seg-loss -1.7538  ema -8.0456
+pes   575  seg-loss -0.0907  ema -5.3575
+pes   600  seg-loss -0.1737  ema -3.2902
+pes   625  seg-loss -20.4436  ema -4.5952
+pes   650  seg-loss -8.2898  ema -6.8612
+pes   675  seg-loss -0.7301  ema -4.9504
+pes   700  seg-loss -0.8475  ema -3.3087
+pes   725  seg-loss -1.6958  ema -2.5166
+pes   750  seg-loss -1.8704  ema -2.2394
+pes   775  seg-loss -20.7233  ema -7.8424
+pes   800  seg-loss -20.7233  ema -12.9499
+pes   825  seg-loss -18.2028  ema -13.0953
+pes   850  seg-loss -20.4912  ema -11.5952
+pes   875  seg-loss -20.6657  ema -15.2020
+pes   900  seg-loss -8.3257  ema -16.4902
+pes   925  seg-loss -18.8528  ema -17.1150
+pes   950  seg-loss -17.4015  ema -17.3626
+pes   975  seg-loss -0.1017  ema -10.7151
+pes  1000  seg-loss -0.1537  ema -6.5201
+Traceback (most recent call last):
+  File "/media/bigdisk/src/vectornet/train_matrix.py", line 380, in <module>
+    main()
+  File "/media/bigdisk/src/vectornet/train_matrix.py", line 346, in main
+    train_pes_matrix(model, sample_problem, args, device, run_evals, probe_score)
+  File "/media/bigdisk/src/vectornet/train_matrix.py", line 102, in train_pes_matrix
+    x, H, s, y = model.step(problem, x, H, s, create_graph=False,
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/media/bigdisk/src/vectornet/vectornet_matrix.py", line 292, in step
+    delta, Hn, sn, log_step = self.unit(Gm, H[l], s[l], s_global, y,
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/media/bigdisk/src/vectornet/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1778, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/media/bigdisk/src/vectornet/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1789, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/media/bigdisk/src/vectornet/vectornet_matrix.py", line 170, in forward
+    X, Y, Z = (torch.einsum("pmab,mt->ptab", mid, self.tri_w[i]) for i in range(3))
+    ^^^^^^^
+  File "/media/bigdisk/src/vectornet/vectornet_matrix.py", line 170, in <genexpr>
+    X, Y, Z = (torch.einsum("pmab,mt->ptab", mid, self.tri_w[i]) for i in range(3))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/media/bigdisk/src/vectornet/.venv/lib/python3.12/site-packages/torch/functional.py", line 373, in einsum
+    return _VF.einsum(equation, operands)  # type: ignore[attr-defined]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 12.00 MiB. GPU 0 has a total capacity of 11.63 GiB of which 84.38 MiB is free. Process 14757 has 303.34 MiB memory in use. Including non-PyTorch memory, this process has 9.40 GiB memory in use. Of the allocated memory 9.15 GiB is allocated by PyTorch, and 112.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
