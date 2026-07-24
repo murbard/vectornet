@@ -678,3 +678,20 @@ NEW ARCHITECTURE (proposed): augment MatrixUnit with per-layer 2nd-moment accumu
 L,R and their learned-power inverse-roots as additional pooled update candidates. Real
 multi-day build + train, uncertain payoff. v13 stands as the strong current result
 (speedrun win + broad tuned-muon-beating variety).
+
+## Iteration 38 — NEW ARCH v19 (2nd-order) BREAKS THE LATE-PHASE CEILING
+
+v19 (learned Shampoo/K-FAC 2nd-order preconditioning, warm v13) step-12k (UNDERTRAINED,
+12k/30k) matched scale check vs v13 (both CPU batch24 lr0.5):
+  step:  600    750    900   1050
+  v13:  1.60   1.60   1.56   1.53  (flattening)
+  v19:  1.57   1.52   1.48   1.46  (STILL DESCENDING)
+  => v19 BEATS v13 by 0.07-0.08 nats in the late phase and keeps descending where v13
+     stalls. cos_prev HIGHER (0.67 vs 0.46) -> more coherent direction, not just different.
+THE CEILING (robust across 6 knob-level attempts) IS BREAKING. The learned 2nd-order
+curvature preconditioning (L^-1/4 M R^-1/4, blended by learned rho2) produces a better
+late-phase direction than Muon-style orthogonalization -- exactly the diagnosed deficit.
+Training STABLE (the Shampoo blow-up risk handled by damping + warmup ramp + learned
+gating). Undertrained at 12k -> expect more. Letting v19 finish 30k, then FULL muon
+benchmark (does it now beat muon 1.29 at 2000 steps, combining v13's early win + 2nd-order
+late win = whole-curve victory?).
